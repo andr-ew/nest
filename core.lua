@@ -1,5 +1,3 @@
--- _obj_ is a base object for all the types on this page that impliments concatenative prototypical inheritance. all subtypes of _obj_ have proprer copies of the tables in the prototype rather than delegated pointers, so changes to subtype members will never propogate up the tree
-
 local tab = require 'tabutil'
 
 -- add ignored keys table argument
@@ -123,6 +121,8 @@ function obj_new(self, o)
 
     return o
 end
+
+-- _obj_ is a base object for all the types on this page that impliments concatenative prototypical inheritance. all subtypes of _obj_ have proprer copies of the tables in the prototype rather than delegated pointers (like the exaples in Programming in Lua), so changes to subtype members will never propogate up the tree
 
 _obj_ = obj_new({})
 
@@ -588,16 +588,20 @@ function _observer:new(o)
     return o
 end
 
-local function runaction(self, aargs)
-    self.v = self.action and self.action(self, table.unpack(aargs)) or aargs[1] or self.v
+local function runaction(self, aargs, clock)
+    local isf = type(self.v) == 'function'
+    if (not isf) and (not clock) then self.v = aargs[1] end
+    local v = self.action and self.action(self, table.unpack(aargs))
+    if not isf then self.v = v or aargs[1] end
+
     self:update(true)
 end
 
 local function clockaction(self, aargs)
     if self.p_.clock then
         if type(self.clock) == 'number' then clock.cancel(self.clock) end
-        self.clock = clock.run(runaction, self, aargs)
-    else runaction(self, aargs) end
+        self.clock = clock.run(runaction, self, aargs, true)
+    else runaction(self, aargs, false) end
 end
 
 _affordance = nest_:new {
