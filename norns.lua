@@ -228,16 +228,16 @@ end
 
 _enc.number.input.muxhandler = _obj_:new {
     point = function(s, n, d) 
-        return delta_number(s, s.v, d), d
+        return delta_number(s, s.p_.v, d), d
     end,
     line = function(s, n, d) 
         local i = tab.key(s.p_.n, n)
-        local v = delta_number(s, s.v[i], d)
+        local v = delta_number(s, s.p_.v[i], d)
         if v then
             local del = minit(s.p_.n)
             del[i] = d
-            s.v[i] = v
-            return s.v, del
+            s.p_.v[i] = v
+            return s.p_.v, del
         end
     end
 }
@@ -285,18 +285,18 @@ end
 
 _enc.control.input.muxhandler = _obj_:new {
     point = function(s, n, d) 
-        local last = s.v
-        return delta_control(s, s.v, d), s.v - last 
+        local last = s.p_.v
+        return delta_control(s, s.p_.v, d), s.p_.v - last 
     end,
     line = function(s, n, d) 
         local i = tab.key(s.p_.n, n)
-        local v = delta_control(s, s.v[i], d)
+        local v = delta_control(s, s.p_.v[i], d)
         if v then
-            local last = s.v[i]
+            local last = s.p_.v[i]
             local del = minit(s.p_.n)
-            s.v[i] = v
+            s.p_.v[i] = v
             del[i] = v - last
-            return s.v, del
+            return s.p_.v, del
         end
     end
 }
@@ -381,14 +381,14 @@ end
 
 _enc.option.input.muxhandler = _obj_:new {
     point = function(s, n, d) 
-        local v = delta_option_point(s, s.v, d)
+        local v = delta_option_point(s, s.p_.v, d)
         return v, s.p_.options[v], d
     end,
     line = function(s, n, d) 
         local i = tab.key(s.p_.n, n)
         local dd = { 0, 0 }
         dd[i] = d
-        local v = delta_option_line(s, s.v, dd[2], dd[1])
+        local v = delta_option_line(s, s.p_.v, dd[2], dd[1])
         if v then
             local del = minit(s.p_.n)
             del[i] = d
@@ -433,7 +433,7 @@ _key.number.input.muxhandler = _obj_:new {
     point = function(s, n, z) 
         if z == s.edge then
             s.wrap = true
-            return delta_number(s, s.v, s.inc), util.time() - s.tdown, s.inc
+            return delta_number(s, s.p_.v, s.inc), util.time() - s.tdown, s.inc
         else s.tdown = util.time()
         end
     end,
@@ -441,7 +441,7 @@ _key.number.input.muxhandler = _obj_:new {
         if z == s.edge then
             local i = tab.key(s.p_.n, n)
             local d = i == 2 and s.inc or -s.inc
-            return delta_number(s, s.v, d), util.time() - s.tdown, d
+            return delta_number(s, s.p_.v, d), util.time() - s.tdown, d
         else s.tdown = util.time()
         end
     end
@@ -466,7 +466,7 @@ _key.option.input.muxhandler = _obj_:new {
     point = function(s, n, z) 
         if z == s.edge then 
             s.wrap = true
-            local v = delta_option_point(s, s.v, s.inc)
+            local v = delta_option_point(s, s.p_.v, s.inc)
             return v, s.p_.options[v], util.time() - s.tdown, s.inc
         else s.tdown = util.time()
         end
@@ -475,7 +475,7 @@ _key.option.input.muxhandler = _obj_:new {
         if z == s.edge then 
             local i = tab.key(s.p_.n, n)
             local d = i == 2 and s.inc or -s.inc
-            local v = delta_option_point(s, s.v, d)
+            local v = delta_option_point(s, s.p_.v, d)
             return v, s.p_.options[v], util.time() - s.tdown, d
         else s.tdown = util.time()
         end
@@ -625,7 +625,7 @@ _key.toggle.input.muxhandler = _obj_:new {
         local held = _key.binary.input.muxhandler.point(s, n, z)
 
         if s.p_.edge == held then
-            return toggle(s, s.v), util.time() - s.tlast, s.theld
+            return toggle(s, s.p_.v), util.time() - s.tlast, s.theld
         end
     end,
     line = function(s, n, z)
@@ -640,7 +640,7 @@ _key.toggle.input.muxhandler = _obj_:new {
  
         if i then   
             if #s.toglist >= min then
-                local v = toggle(s, s.v[i])
+                local v = toggle(s, s.p_.v[i])
                 
                 if v > 0 then
                     add = i
@@ -656,22 +656,22 @@ _key.toggle.input.muxhandler = _obj_:new {
             
                 s.ttog[i] = util.time() - s.tlast[i]
 
-                if add then s.v[add] = v end
-                if rem then s.v[rem] = 0 end
+                if add then s.p_.v[add] = v end
+                if rem then s.p_.v[rem] = 0 end
 
             elseif #hlist >= min then
                 for j,w in ipairs(hlist) do
                     s.toglist[j] = w
-                    s.v[w] = 1
+                    s.p_.v[w] = 1
                 end
             end
             
             if #s.toglist < min then
-                for j,w in ipairs(s.v) do s.v[j] = 0 end
+                for j,w in ipairs(s.p_.v) do s.p_.v[j] = 0 end
                 s.toglist = {}
             end
 
-            return s.v, s.ttog, theld, add, rem, s.toglist
+            return s.p_.v, s.ttog, theld, add, rem, s.toglist
         end
     end
 }
@@ -716,14 +716,14 @@ _key.trigger.input.muxhandler = _obj_:new {
         local lret
 
         if s.edge == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
-            s.v[hadd] = 1
+            s.p_.v[hadd] = 1
             s.tdelta[hadd] = util.time() - s.tlast[hadd]
 
             ret = true
             lret = hlist
         elseif s.edge == 1 and #hlist == min and hadd then
             for i,w in ipairs(hlist) do 
-                s.v[w] = 1
+                s.p_.v[w] = 1
 
                 s.tdelta[w] = util.time() - s.tlast[w]
             end
@@ -734,22 +734,22 @@ _key.trigger.input.muxhandler = _obj_:new {
             s.triglist = {}
 
             for i,w in ipairs(hlist) do 
-                if s.v[w] <= 0 then
-                    s.v[w] = 1
+                if s.p_.v[w] <= 0 then
+                    s.p_.v[w] = 1
                     s.tdelta[w] = util.time() - s.tlast[w]
                     table.insert(s.triglist, w)
                 end
             end
             
-            if s.v[hrem] <= 0 then
+            if s.p_.v[hrem] <= 0 then
                 ret = true
                 lret = s.triglist
-                s.v[hrem] = 1 
+                s.p_.v[hrem] = 1 
                 s.tdelta[hrem] = util.time() - s.tlast[hrem]
                 table.insert(s.triglist, hrem)
             end
         end
             
-        if ret then return s.v, s.tdelta, s.theld, nil, nil, lret end
+        if ret then return s.p_.v, s.tdelta, s.theld, nil, nil, lret end
     end
 }
