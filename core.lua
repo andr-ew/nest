@@ -325,7 +325,9 @@ nest_ = {
             print(err)
             return
         end
-        local o = self:get(true, function(s) return s.persistent == nil or s.p_.persistent end, _obj_)
+        local o = self:get(true, function(s)
+            return (s.persistent == nil or s.p_.persistent) and type(s.v) ~= 'function' end, 
+        _obj_)
 
         file:write("return ")
         serialize(o, function(st)
@@ -687,10 +689,14 @@ _affordance = nest_:new {
             if type(t.value) == 'table' then
                 if t.value.is_obj then self.value = t.value:new()
                 else self.value = _obj_:new(t.value) end
-            elseif type(t.value) ~= 'function' then self.value = t.value end
+            elseif type(self.value) ~= 'function' then 
+                self.value = t.value 
+                self:update(silent)
+            else
+                local defaults = self.arg_defaults or {}
+                clockaction(self, { t.value, table.unpack(defaults) })
+            end
         end
-
-        self:update(silent)
     end
     --[[
     get = function(self, silent) 
