@@ -119,7 +119,7 @@ _arc.number = _arc.affordance:new {
 }
 
 _arc.number.input.handler = function(self, n, d)
-    local value = self.value
+    local value = self.p_.value
     local range = self.p_.range
 
     local v = value + (d * self.inc)
@@ -187,7 +187,7 @@ _arc.control.copy = function(self, o)
 end
 
 _arc.control.input.handler = function(self, n, d)
-    local value = self.controlspec:unmap(self.v) + (d * self.controlspec.quantum)
+    local value = self.controlspec:unmap(self.p_.v) + (d * self.controlspec.quantum)
 
     if self.p_.controlspec.wrap then
         while value > 1 do
@@ -199,7 +199,7 @@ _arc.control.input.handler = function(self, n, d)
     end
     
     local c = self.p_.controlspec:map(util.clamp(value, 0, 1))
-    if self.v ~= c then
+    if self.p_.v ~= c then
         return c
     end
 end
@@ -240,7 +240,7 @@ _arc.option = _arc.affordance:new {
 }
 
 _arc.option.input.handler = function(self, n, d)
-    local v = self.value + d
+    local v = self.p_.value + d
     local range = { self.p_.range[1], self.p_.range[2] + 1 - self.p_.sens }
     local include = self.p_.include
 
@@ -263,7 +263,7 @@ _arc.option.input.handler = function(self, n, d)
     end
 
     local c = util.clamp(v,range[1],range[2])
-    if self.value ~= c then
+    if self.p_.value ~= c then
         return c, math.floor(c)
     end
 end
@@ -350,5 +350,5 @@ _arc.key.toggle.input.handler = function(s, n, z)
         s.tdown = util.time()
     else theld = util.time() - s.tdown end
 
-    if z == s.p_.edge then return ~ s.v & 1, theld end
+    if z == s.p_.edge then return ~ s.p_.v & 1, theld end
 end
