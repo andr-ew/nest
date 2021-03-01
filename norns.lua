@@ -196,9 +196,11 @@ _enc.delta.input.muxhandler = _obj_:new {
 }
 
 local function delta_number(self, value, d)
-    local v = value + d
+    local range = self.p_.range
 
-    if self.wrap then
+    local v = value + (d * self.inc)
+
+    if self.p_.wrap then
         while v > self.range[2] do
             v = v - (self.range[2] - self.range[1]) - 1
         end
@@ -215,6 +217,7 @@ end
 
 _enc.number = _enc.muxaffordance:new {
     range = { 0, 1 },
+    inc = 0.01,
     wrap = false
 }
 
