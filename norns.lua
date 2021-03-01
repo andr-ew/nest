@@ -196,7 +196,7 @@ _enc.delta.input.muxhandler = _obj_:new {
 }
 
 local function delta_number(self, value, d)
-    local range = self.p_.range
+    local range = { self.p_.min, self.p_.max }
 
     local v = value + (d * self.inc)
 
@@ -216,7 +216,7 @@ local function delta_number(self, value, d)
 end
 
 _enc.number = _enc.muxaffordance:new {
-    range = { 0, 1 },
+    min = 1, max = 1,
     inc = 0.01,
     wrap = false
 }
@@ -266,7 +266,7 @@ end
 
 _enc.control = _enc.muxaffordance:new {
     controlspec = nil,
-    range = { 0, 1 },
+    min = 0, max = 1,
     step = 0.01,
     units = '',
     quantum = 0.01,
@@ -279,7 +279,7 @@ _enc.control.copy = function(self, o)
 
     o = _enc.muxaffordance.copy(self, o)
 
-    o.controlspec = cs or controlspec.new(o.p_.range[1], o.p_.range[2], o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
+    o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
 
     local v = minit(o.p_.n)
     if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
@@ -428,7 +428,7 @@ _key.muxaffordance.input.handler = _enc.muxaffordance.input.handler
 _key.number = _key.muxaffordance:new {
     inc = 1,
     wrap = false,
-    range = { 0, 1 },
+    min = 0, max = 10,
     edge = 1,
     tdown = 0
 }

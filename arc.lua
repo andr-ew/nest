@@ -100,7 +100,7 @@ end
 
 _arc.affordance = _arc.fill:new {
     v = 0,
-    range = { 0, 1 },
+    min = 0, max = 1,
     sens = 1,
     wrap = false,
     input = _input:new()
@@ -120,7 +120,7 @@ _arc.number = _arc.affordance:new {
 
 _arc.number.input.handler = function(self, n, d)
     local value = self.p_.value
-    local range = self.p_.range
+    local range = { self.p_.min, self.p_.max }
 
     local v = value + (d * self.inc)
 
@@ -168,7 +168,7 @@ _arc.control = _arc.affordance:new {
     x = { 42, 24 },
     lvl = { 0, 4, 15 },
     controlspec = nil,
-    range = { 0, 1 },
+    min = 0, max = 1,
     step = 0, --0.01,
     units = '',
     quantum = 0.01,
@@ -181,7 +181,7 @@ _arc.control.copy = function(self, o)
 
     o = _arc.affordance.copy(self, o)
 
-    o.controlspec = cs or controlspec.new(o.p_.range[1], o.p_.range[2], o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
+    o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
 
     return o
 end
@@ -235,13 +235,13 @@ _arc.option = _arc.affordance:new {
     size = nil, -- 10, { 10, 10 20, 10 }
     include = nil,
     glyph = nil,
-    range = function(s) return { 1, s.options } end, -- { 1, 3 }, { 1, 2, 4 }
+    min = 1, max = function(s) return s.options end,
     margin = 0
 }
 
 _arc.option.input.handler = function(self, n, d)
     local v = self.p_.value + d
-    local range = { self.p_.range[1], self.p_.range[2] + 1 - self.p_.sens }
+    local range = { self.p_.min, self.p_.max + 1 - self.p_.sens }
     local include = self.p_.include
 
     if self.p_.wrap then
@@ -290,7 +290,7 @@ _arc.option.output.redraw = function(s, v, a)
         local margin = s.p_.margin
         local stab = type(s.p_.size) == 'table'
         local size = s.p_.size or (count/options - s.p_.margin)
-        local range = s.p_.range
+        local range = { s.p_.min, s.p_.max }
         local include = s.p_.include
         local lvl = type(s.p_.lvl) == 'table' and s.p_.lvl or { s.p_.lvl }
         while #lvl < 3 do table.insert(lvl, 1, 0) end

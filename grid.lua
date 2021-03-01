@@ -495,7 +495,7 @@ _grid.toggle.input.muxhandler = _obj_:new {
         local held = _grid.binary.input.muxhandler.point(s, x, y, z)
 
         if s.edge == held or (held == 1 and s.edge == 2) then
-            return toggle(s, s.p_.v, s.p_.lvl, s.p_.range, s.p_.include),
+            return toggle(s, s.p_.v, s.p_.lvl,  { s.p_.min, s.p_.max }, s.p_.include),
                 s.theld,
                 util.time() - s.tlast
         elseif s.edge == 2 then
@@ -515,7 +515,7 @@ _grid.toggle.input.muxhandler = _obj_:new {
         if i then   
             if #s.toglist >= min then
                 local lvl = s.p_('lvl', i)
-                local range = s.p_('range', i)
+                local range = { s.p_('min', i), s.p_('max', i) }
                 local include = s.p_('include', i)
                 local v = toggle(
                     s, 
@@ -542,12 +542,12 @@ _grid.toggle.input.muxhandler = _obj_:new {
                 s.ttog[i] = util.time() - s.tlast[i]
 
                 if add then s.p_.v[add] = v end
-                if rem then s.p_.v[rem] = togglelow(s, s.p_('range', rem), s.p_('include', rem)) end
+                if rem then s.p_.v[rem] = togglelow(s, { s.p_('min', rem), s.p_('max', rem) }, s.p_('include', rem)) end
 
             elseif #hlist >= min then
                 for j,w in ipairs(hlist) do
                     s.toglist[j] = w
-                    s.p_.v[w] = toggleset(s, 1, s.p_('lvl', w), s.p_('range', w), s.p_('include', w))
+                    s.p_.v[w] = toggleset(s, 1, s.p_('lvl', w), { s.p_('min', w), s.p_('max', w) }, s.p_('include', w))
                 end
             end
             
@@ -575,7 +575,7 @@ _grid.toggle.input.muxhandler = _obj_:new {
         if i and held then   
             if #s.toglist >= min then
                 local lvl = s.p_('lvl', i.x, i.y)
-                local range = s.p_('range', i.x, i.y)
+                local range = { s.p_('min', i.x, i.y), s.p_('max', i.x, i.y) }
                 local include = s.p_('include', i.x, i.y)
                 local v = toggle(
                     s, 
@@ -610,12 +610,12 @@ _grid.toggle.input.muxhandler = _obj_:new {
                 s.ttog[i.x][i.y] = util.time() - s.tlast[i.x][i.y]
 
                 if add then s.p_.v[add.x][add.y] = v end
-                if rem then s.p_.v[rem.x][rem.y] = togglelow(s, s.p_('range', rem.x, rem.y), s.p_('include', rem.x, rem.y)) end
+                if rem then s.p_.v[rem.x][rem.y] = togglelow(s, { s.p_('min', rem.x, rem.y), s.p_('max', rem.x, rem.y) }, s.p_('include', rem.x, rem.y)) end
 
             elseif #hlist >= min then
                 for j,w in ipairs(hlist) do
                     s.toglist[j] = w
-                    s.p_.v[w.x][w.y] = toggleset(s, 1, s.p_('lvl', w.x, w.y), s.p_('range', w.x, w.y), s.p_('include', w.x, w.y))
+                    s.p_.v[w.x][w.y] = toggleset(s, 1, s.p_('lvl', w.x, w.y), { s.p_('min', w.x, w.y), s.p_('max', w.x, w.y) }, s.p_('include', w.x, w.y))
                 end
             end
 
@@ -1042,7 +1042,7 @@ _grid.number.output.muxredraw = _obj_:new {
 }
 
 _grid.control = _grid.number:new { 
-    range = { 0, 1 }, 
+    min = 0, max = 1,
     lvl = { 0, 4, 15 },
     step = 0, --0.01,
     v = 0,
@@ -1064,7 +1064,7 @@ _grid.control.new = function(self, o)
     if axis.x and axis.y then o.vlast = type(o.vlast) == 'table' and o.vlast or { x = 0, y = 0 } end
     local default = type(o.v) == 'table' and o.v[1] or o.v
 
-    o.controlspec = cs or controlspec.new(o.p_.range[1], o.p_.range[2], o.p_.warp, o.p_.step, default, o.p_.units, o.p_.quantum, o.p_.wrap)
+    o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, default, o.p_.units, o.p_.quantum, o.p_.wrap)
 
     return o
 end
