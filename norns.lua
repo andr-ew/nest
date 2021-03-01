@@ -108,7 +108,8 @@ nest_.connect = function(self, objects, fps)
                 clock.sleep(1/fps)
                 
                 for k,v in pairs(devs) do 
-                    if v.redraw and v.dirty then 
+                    if k == 'screen' then v.redraw()
+                    elseif v.redraw and v.dirty then 
                         v.dirty = false
                         v.redraw()
                     end
