@@ -108,7 +108,7 @@ nest_.connect = function(self, objects, fps)
                 clock.sleep(1/fps)
                 
                 for k,v in pairs(devs) do 
-                    if k == 'screen' and not _menu.mode then v.redraw() --norns menu secret system dependency
+                    if k == 'screen' and (not _menu.mode) then v.redraw() --norns menu secret system dependency
                     elseif v.redraw and v.dirty then 
                         v.dirty = false
                         v.redraw()
