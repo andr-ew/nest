@@ -201,15 +201,15 @@ local function delta_number(self, value, d)
     local v = value + (d * self.inc)
 
     if self.p_.wrap then
-        while v > self.range[2] do
-            v = v - (self.range[2] - self.range[1]) - 1
+        while v > range[2] do
+            v = v - (range[2] - range[1]) - 1
         end
-        while v < self.range[1] do
-            v = v + (self.range[2] - self.range[1]) + 1
+        while v < range[1] do
+            v = v + (range[2] - range[1]) + 1
         end
     end
 
-    local c = util.clamp(v,self.range[1],self.range[2])
+    local c = util.clamp(v, range[1], range[2])
     if value ~= c then
         return c
     end
