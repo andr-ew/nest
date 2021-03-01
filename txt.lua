@@ -560,15 +560,18 @@ _txt.label.output.txt = function(s) return s.p_.v end
 _txt.labelaffordance = _txt.affordance:new {
     label = function(s) if type(s.p.k) == 'string' then return s.p.k end end,
     lvl = function(s) return s.p_.label and { 4, 15 } or 15 end,
+    step = 0.01,
     margin = 5
 }
 
 local function labeltxt(s)
     if s.p_.label then 
         if type(s.p_.v) == 'table' then
-            return { s.p_.label, table.unpack(s.p_.v) }
-        else return { s.p_.label, s.p_.v } end
-    else return s.p_.v end
+            local vround = {}
+            for i,v in ipairs(s.p_.v) do vround[i] = util.round(v, s.p_.step) end
+            return { s.p_.label, table.unpack(vround) }
+        else return { s.p_.label, util.round(s.p_.v, s.p_.step) } end
+    else return util.round(s.p_.v, s.p_.step) end
 end
 
 _txt.labelaffordance.output.txt = labeltxt
@@ -580,6 +583,7 @@ _txt.enc.number = _enc.number:new()
 _txt.labelaffordance:copy(_txt.enc.number)
 
 _txt.enc.control = _enc.control:new()
+_txt.enc.control.step = function(s) return s.controlspec.step end
 _txt.labelaffordance:copy(_txt.enc.control)
 
 _txt.option = _txt.affordance:new()
