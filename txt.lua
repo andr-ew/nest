@@ -555,7 +555,7 @@ _txt.label = _txt.affordance:new {
     value = 'label'
 } 
 
-_txt.label.output.txt = function(s) return s.v end
+_txt.label.output.txt = function(s) return s.p_.v end
 
 _txt.labelaffordance = _txt.affordance:new {
     label = function(s) if type(s.p.k) == 'string' then return s.p.k end end,
@@ -565,10 +565,10 @@ _txt.labelaffordance = _txt.affordance:new {
 
 local function labeltxt(s)
     if s.p_.label then 
-        if type(s.v) == 'table' then
-            return { s.p_.label, table.unpack(s.v) }
-        else return { s.p_.label, s.v } end
-    else return s.v end
+        if type(s.p_.v) == 'table' then
+            return { s.p_.label, table.unpack(s.p_.v) }
+        else return { s.p_.label, s.p_.v } end
+    else return s.p_.v end
 end
 
 _txt.labelaffordance.output.txt = labeltxt
@@ -584,27 +584,27 @@ _txt.labelaffordance:copy(_txt.enc.control)
 
 _txt.option = _txt.affordance:new()
 _txt.option.lvl = { 4, 15 }
-_txt.option.selected = function(s) return s.v end
+_txt.option.selected = function(s) return s.p_.v end
 _txt.option.output.txt = function(s) return s.options end
 _txt.option.output.ltxt = function(s)
     if s.p_.label then 
-        if type(s.v) == 'table' then
-            return { s.p_.label, s.p_.options[s.v.y][s.v.x] }
-        else return { s.p_.label, s.p_.options[s.v] } end
-    else return s.p_.options[s.v] end
+        if type(s.p_.v) == 'table' then
+            return { s.p_.label, s.p_.options[s.p_.v.y][s.p_.v.x] }
+        else return { s.p_.label, s.p_.options[s.p_.v] } end
+    else return s.p_.options[s.p_.v] end
 end
 
 _txt.enc.option = _enc.option:new()
 _txt.option:copy(_txt.enc.option)
 
 _txt.list = _txt.affordance:new { lvl = { 4, 15 }, flow = 'y' }
-_txt.list.selected = function(s) return s.v end
+_txt.list.selected = function(s) return s.p_.v end
 _txt.list.output.txt = function(s)
     local ret = {}
     for i,v in ipairs(s.items) do
         
         --meh, this should be in an initialization function but init stuff is being overwritten by the enc type ://
-        v.enabled = function() return i == math.floor(s.v) end
+        v.enabled = function() return i == math.floor(s.p_.v) end
 
         ret[i] = v.output.ltxt and v.output:ltxt() or v.output:txt()
     end
@@ -632,12 +632,12 @@ _txt.binary = _txt.affordance:new {
 _txt.binary.selected = function(s) 
     if type(s.p_.n) == 'table' then
         local ret = {}
-        for i,v in ipairs(s.v) do
+        for i,v in ipairs(s.p_.v) do
             if v > 0 then ret[#ret + 1] = i end
         end
         
         return ret
-    else return s.v end
+    else return s.p_.v end
 end
 _txt.binary.output.txt = function(s) return s.p_.label end
 _txt.binary.output.ltxt = labeltxt
@@ -649,10 +649,10 @@ _txt.key.trigger.output.handler = function(s)
     clock.run(function()
         clock.sleep(s.blinktime)
         if type(s.p_.n) == 'table' then
-            for i,v in ipairs(s.v) do
-                s.v[i] = 0
+            for i,v in ipairs(s.p_.v) do
+                s.p_.v[i] = 0
             end
-        else s.v = 0 end
+        else s.p_.v = 0 end
 
         s.devs[s.devk].dirty = true
     end)

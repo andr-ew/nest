@@ -325,7 +325,9 @@ nest_ = {
             print(err)
             return
         end
-        local o = self:get(true, function(s) return s.persistent == nil or s.p_.persistent end, _obj_)
+        local o = self:get(true, function(s)
+            return (s.persistent == nil or s.p_.persistent) and type(s.v) ~= 'function' end, 
+        _obj_)
 
         file:write("return ")
         serialize(o, function(st)
@@ -558,7 +560,7 @@ _output = nest_:new {
     devk = nil,
     draw = function(self, devk)
         if (self.enabled == nil or self.p_.enabled) and self.devk == devk then
-            if self.redraw then self.devs[devk].dirty = self:redraw(self.v, self.devs[devk].object) or self.devs[devk].dirty end -- refactor dirty flag set
+            if self.redraw then self.devs[devk].dirty = self:redraw(self.p_.v, self.devs[devk].object) or self.devs[devk].dirty end -- refactor dirty flag set
         end
     end
 }
@@ -595,13 +597,14 @@ local function runaction(self, aargs, clock)
     if not isf then self.v = v or aargs[1] end
 
     self:update(true)
+    return v or aargs[1]
 end
 
 local function clockaction(self, aargs)
     if self.p_.clock then
         if type(self.clock) == 'number' then clock.cancel(self.clock) end
         self.clock = clock.run(runaction, self, aargs, true)
-    else runaction(self, aargs, false) end
+    else return runaction(self, aargs, false) end
 end
 
 _affordance = nest_:new {
@@ -642,12 +645,12 @@ _affordance = nest_:new {
                 end
 
                 if aargs and aargs[1] then 
-                    clockaction(self, aargs)
+                    local v = clockaction(self, aargs) or aargs[1]
                     
                     if self.observable then
                         for i,w in ipairs(ob) do
                             if w.p.id ~= self.id then 
-                                w:pass(self, self.v, hargs, aargs)
+                                w:pass(self, v, hargs, aargs)
                             end
                         end
                     end
@@ -658,12 +661,12 @@ _affordance = nest_:new {
     update = function(self, silent)
         if (not silent) and self.action then
             local defaults = self.arg_defaults or {}
-            clockaction(self, { self.v, table.unpack(defaults) })
+            clockaction(self, { self.p_.v, table.unpack(defaults) })
         else
             for i,v in ipairs(self.children) do 
                 if v.is_output and self.devs[v.devk] then 
                     self.devs[v.devk].dirty = true
-                    if v.handler then v:handler(self.v) end
+                    if v.handler then v:handler(self.p_.v) end
                 end
             end
         end
@@ -673,7 +676,7 @@ _affordance = nest_:new {
         if test == nil or test(self) then
             local t = nest_.get(self, silent, nil, typ)
 
-            t.value = type(self.value) == 'table' and self.value:new() or self.value -- watch out for value ~= _obj_ !
+            t.value = type(self.value) == 'table' and self.value:new() or self.p_.value -- watch out for value ~= _obj_ !
             if silent == false then self:update(false) end
 
             return t
@@ -686,10 +689,14 @@ _affordance = nest_:new {
             if type(t.value) == 'table' then
                 if t.value.is_obj then self.value = t.value:new()
                 else self.value = _obj_:new(t.value) end
-            else self.value = t.value end
+            elseif type(self.value) ~= 'function' then 
+                self.value = t.value 
+                self:update(silent)
+            else
+                local defaults = self.arg_defaults or {}
+                clockaction(self, { t.value, table.unpack(defaults) })
+            end
         end
-
-        self:update(silent)
     end
     --[[
     get = function(self, silent) 
