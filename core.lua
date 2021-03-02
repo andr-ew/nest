@@ -314,6 +314,7 @@ nest_ = {
             if self[k] and type(self[k]) == 'table' and self[k].merge then self[k]:merge(v)
             else self[k] = v end
         end
+        return self
     end,
     save = function(self, n, name)
         n = n or 0
