@@ -723,7 +723,7 @@ _grid.trigger.input.muxhandler = _obj_:new {
             end
         end
             
-        if ret then return s.p_.v, s.tdelta, s.theld, nil, nil, lret end
+        if ret then return s.p_.v, s.theld, s.tdelta, nil, nil, lret end
     end,
     plane = function(s, x, y, z)
         local max
@@ -771,7 +771,7 @@ _grid.trigger.input.muxhandler = _obj_:new {
             end
         end
             
-        if ret then return s.p_.v, s.tdelta, s.theld, nil, nil, lret end
+        if ret then return s.p_.v, s.theld, s.tdelta, nil, nil, lret end
     end
 }
 

@@ -637,7 +637,7 @@ _key.toggle.input.muxhandler = _obj_:new {
         local held = _key.binary.input.muxhandler.point(s, n, z)
 
         if s.p_.edge == held then
-            return toggle(s, s.p_.v), util.time() - s.tlast, s.theld
+            return toggle(s, s.p_.v), s.theld, util.time() - s.tlast 
         end
     end,
     line = function(s, n, z)
@@ -683,7 +683,7 @@ _key.toggle.input.muxhandler = _obj_:new {
                 s.toglist = {}
             end
 
-            return s.p_.v, s.ttog, theld, add, rem, s.toglist
+            return s.p_.v, theld, s.ttog, add, rem, s.toglist
         end
     end
 }
@@ -762,6 +762,6 @@ _key.trigger.input.muxhandler = _obj_:new {
             end
         end
             
-        if ret then return s.p_.v, s.tdelta, s.theld, nil, nil, lret end
+        if ret then return s.p_.v, s.theld, s.tdelta, nil, nil, lret end
     end
 }
