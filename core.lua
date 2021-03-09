@@ -227,7 +227,7 @@ nest_ = {
     --init_action = function(self) self:init() end,
     each = function(self, f) 
         for k,v in pairs(self.children) do 
-            local r = f(k, v)
+            local r = f(v.k or k, v)
             if r then self:replace(k, r) end
         end
 
