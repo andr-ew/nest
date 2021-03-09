@@ -171,24 +171,30 @@ local function nickname(k)
 end
 
 local function index_nickname(t, k) 
-    if k == 'v' then return t.value
-    elseif k == 'lvl' then return t.level
-    elseif k == 'en' then return t.enabled
+    if k == 'en' then return t.enabled
     elseif k == 'parent' then return t._.p
-    elseif k == 'key' then return t._.k
+    elseif k == 'key' then return t._.k end
+
+    if rawget(t, 'is_affordance') then
+        if k == 'v' then return t.value
+        elseif k == 'lvl' then return t.level end
     end
 end
 
 local function format_nickname(t, k, v) 
-    if k == 'v' and not rawget(t, 'value') then
-        rawset(t, 'value', v)
-        t['v'] = nil
-    elseif k == 'lvl' and not rawget(t, 'level') then
-        rawset(t, 'level', v)
-        t['lvl'] = nil
-    elseif k == 'en' and not rawget(t, 'enabled') then
+    if k == 'en' and not rawget(t, 'enabled') then
         rawset(t, 'enabled', v)
         t['en'] = nil
+    end
+
+    if rawget(t, 'is_affordance') then
+        if k == 'v' and not rawget(t, 'value') then
+            rawset(t, 'value', v)
+            t['v'] = nil
+        elseif k == 'lvl' and not rawget(t, 'level') then
+            rawset(t, 'level', v)
+            t['lvl'] = nil
+        end
     end
     
     return v
