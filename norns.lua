@@ -69,14 +69,22 @@ nest_.connect = function(self, objects, fps)
                 refresh = function()
                     screen.update()
                 end,
+                --[[
                 redraw = function()
                     screen.clear()
                     self:draw('screen')
                     screen.update()
                 end
+                --]]
+               redraw = function() redraw() end
             }
 
-            redraw = devs[kk].redraw
+            --redraw = devs[kk].redraw
+            redraw = function()
+                screen.clear()
+                self:draw('screen')
+                screen.update()
+            end
         else 
             print('nest_.connect: invalid device key. valid options are g, a, m, h, screen, enc, key')
         end
