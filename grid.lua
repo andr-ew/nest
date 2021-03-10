@@ -685,13 +685,14 @@ _grid.trigger.input.muxhandler = _obj_:new {
         end        
         local held, theld, _, hadd, hrem, hlist = _grid.binary.input.muxhandler.line(s, x, y, z, 0, nil)
         local ret = false
-        local lret
+        local lret, add
 
         if s.edge == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
             s.p_.v[hadd] = 1
             s.tdelta[hadd] = util.time() - s.tlast[hadd]
 
             ret = true
+            add = hadd
             lret = hlist
         elseif s.edge == 1 and #hlist == min and hadd then
             for i,w in ipairs(hlist) do 
@@ -702,6 +703,7 @@ _grid.trigger.input.muxhandler = _obj_:new {
 
             ret = true
             lret = hlist
+            add = hlist[#hlist]
         elseif s.edge == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
             --s.triglist = {}
             s:replace('triglist', {})
@@ -717,13 +719,14 @@ _grid.trigger.input.muxhandler = _obj_:new {
             if s.p_.v[hrem] <= 0 then
                 ret = true
                 lret = s.triglist
+                add = hrem
                 s.p_.v[hrem] = 1 
                 s.tdelta[hrem] = util.time() - s.tlast[hrem]
                 table.insert(s.triglist, hrem)
             end
         end
             
-        if ret then return s.p_.v, s.theld, s.tdelta, nil, nil, lret end
+        if ret then return s.p_.v, s.theld, s.tdelta, add, nil, lret end
     end,
     plane = function(s, x, y, z)
         local max
@@ -733,13 +736,14 @@ _grid.trigger.input.muxhandler = _obj_:new {
         end        
         local held, theld, _, hadd, hrem, hlist = _grid.binary.input.muxhandler.plane(s, x, y, z, 0, nil)
         local ret = false
-        local lret
+        local lret, add
 
         if s.edge == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
             s.p_.v[hadd.x][hadd.y] = 1
             s.tdelta[hadd.x][hadd.y] = util.time() - s.tlast[hadd.x][hadd.y]
 
             ret = true
+            add = hadd
             lret = hlist
         elseif s.edge == 1 and #hlist == min and hadd then
             for i,w in ipairs(hlist) do 
@@ -749,6 +753,7 @@ _grid.trigger.input.muxhandler = _obj_:new {
             end
 
             ret = true
+            add = hlist[#hlist]
             lret = hlist
         elseif s.edge == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
             --s.triglist = {}
@@ -765,13 +770,14 @@ _grid.trigger.input.muxhandler = _obj_:new {
             if s.p_.v[hrem.x][hrem.y] <= 0 then
                 ret = true
                 lret = s.triglist
+                add = hrem
                 s.p_.v[hrem.x][hrem.y] = 1 
                 s.tdelta[hrem.x][hrem.y] = util.time() - s.tlast[hrem.x][hrem.y]
                 table.insert(s.triglist, hrem)
             end
         end
             
-        if ret then return s.p_.v, s.theld, s.tdelta, nil, nil, lret end
+        if ret then return s.p_.v, s.theld, s.tdelta, add, nil, lret end
     end
 }
 

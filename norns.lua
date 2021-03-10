@@ -688,7 +688,7 @@ _key.toggle.input.muxhandler = _obj_:new {
     end
 }
 
-_key.trigger = _key.binary:new { edge = 1, blinktime = 0.1 }
+_key.trigger = _key.binary:new { edge = 1, blinktime = 0.1, persistent = false }
 
 _key.trigger.copy = function(self, o) 
     o = _key.binary.copy(self, o)
@@ -725,13 +725,14 @@ _key.trigger.input.muxhandler = _obj_:new {
         end        
         local held, theld, _, hadd, hrem, hlist = _key.binary.input.muxhandler.line(s, n, z, 0, nil)
         local ret = false
-        local lret
+        local lret, add
 
         if s.edge == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
             s.p_.v[hadd] = 1
             s.tdelta[hadd] = util.time() - s.tlast[hadd]
 
             ret = true
+            add = hadd
             lret = hlist
         elseif s.edge == 1 and #hlist == min and hadd then
             for i,w in ipairs(hlist) do 
@@ -742,6 +743,7 @@ _key.trigger.input.muxhandler = _obj_:new {
 
             ret = true
             lret = hlist
+            add = hlist[#hlist]
         elseif s.edge == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
             s.triglist = {}
 
@@ -757,11 +759,12 @@ _key.trigger.input.muxhandler = _obj_:new {
                 ret = true
                 lret = s.triglist
                 s.p_.v[hrem] = 1 
+                add = hrem
                 s.tdelta[hrem] = util.time() - s.tlast[hrem]
                 table.insert(s.triglist, hrem)
             end
         end
             
-        if ret then return s.p_.v, s.theld, s.tdelta, nil, nil, lret end
+        if ret then return s.p_.v, s.theld, s.tdelta, add, nil, lret end
     end
 }
