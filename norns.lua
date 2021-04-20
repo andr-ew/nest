@@ -322,7 +322,7 @@ local function delta_option_point(self, value, d)
 
     if self.wrap then
         while v > size do
-            v = v - size
+            v = v - size + 1
         end
         while v < 1 do
             v = v + size + 1
@@ -345,7 +345,7 @@ local function delta_option_line(self, value, dx, dy)
 
     if self.wrap then
         while vy > sizey do
-            vy = vy - sizey
+            vy = vy - sizey + 1
         end
         while vy < 1 do
             vy = vy + sizey + 1
