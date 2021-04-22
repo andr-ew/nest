@@ -315,14 +315,14 @@ _enc.control.input.muxhandler = _obj_:new {
 
 local tab = require 'tabutil'
 
-local function delta_option_point(self, value, d)
+local function delta_option_point(self, value, d, wrap_scoot)
     local i = value or 0
     local v = i + d
     local size = #self.p_.options + 1 - self.p_.sens
 
     if self.wrap then
         while v > size do
-            v = v - size + 1
+            v = v - size + (wrap_scoot and 1 or 0)
         end
         while v < 1 do
             v = v + size + 1
@@ -335,7 +335,7 @@ local function delta_option_point(self, value, d)
     end
 end
 
-local function delta_option_line(self, value, dx, dy)
+local function delta_option_line(self, value, dx, dy, wrap_scoot)
     local i = value.x
     local j = value.y
     local sizey = #self.p_.options + 1 - self.p_.sens
@@ -345,7 +345,7 @@ local function delta_option_line(self, value, dx, dy)
 
     if self.wrap then
         while vy > sizey do
-            vy = vy - sizey + 1
+            vy = vy - sizey + (wrap_scoot and 1 or 0)
         end
         while vy < 1 do
             vy = vy + sizey + 1
@@ -393,14 +393,14 @@ end
 
 _enc.option.input.muxhandler = _obj_:new {
     point = function(s, n, d) 
-        local v = delta_option_point(s, s.p_.v, d)
+        local v = delta_option_point(s, s.p_.v, d, true)
         return v, s.p_.options[v], d
     end,
     line = function(s, n, d) 
         local i = tab.key(s.p_.n, n)
         local dd = { 0, 0 }
         dd[i] = d
-        local v = delta_option_line(s, s.p_.v, dd[2], dd[1])
+        local v = delta_option_line(s, s.p_.v, dd[2], dd[1], true)
         if v then
             local del = minit(s.p_.n)
             del[i] = d
