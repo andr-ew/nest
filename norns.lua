@@ -781,10 +781,10 @@ local lnk = function(s, id, t, o)
     if type(s.v) == 'table' then
         print(t .. '.link: value cannot be a table')
     else
-        o.label = p.name or id
+        o.label = o.label or s.label or gp(id).name or id
         o.value = function() return params:get(id) end
         o.action = function(s, v) params:set(id, v) end
-        s:merge(o, true)
+        s:merge(o)
     end
 end
 
