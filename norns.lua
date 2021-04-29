@@ -801,8 +801,14 @@ _enc.number.link = function(s, id)
     local p,t = gp(id), '_enc.number'
 
     if p.t == pt.number then
+        if math.abs(s.inc)%1 == 0 then
+            lnk(s, id, t, {
+                min = p.min, max = p.max, wrap = p.wrap,
+            })
+        else print(t..'.link: inc cannot be fractional for number param :/') end
+    elseif p.t == pt.control then
         lnk(s, id, t, {
-            min = p.min, max = p.max, wrap = p.wrap,
+            min = p.controlspec.min, max = p.controlspec.max, wrap = p.controlspec.wrap,
         })
     else err(t) end; return s
 end
