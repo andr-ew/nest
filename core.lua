@@ -315,13 +315,9 @@ nest_ = {
             return t
         end
     end,
-    merge = function(self, o, no_overwrite)
+    merge = function(self, o)
         for k,v in pairs(o) do
-            if self[k] then
-                if type(self[k]) == 'table' and self[k].is_nest then 
-                    self[k]:merge(v, no_overwrite) 
-                elseif not no_overwrite then self[k] = v
-                end
+            if self[k] and type(self[k]) == 'table' and self[k].merge then self[k]:merge(v)
             else self[k] = v end
         end
         return self

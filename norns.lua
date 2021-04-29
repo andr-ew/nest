@@ -1,7 +1,5 @@
 tab = require 'tabutil'
 
----------------------------------------CONNET-----------------------------------------
-
 nest_.connect = function(self, objects, fps)
     local devs = {}
 
@@ -134,8 +132,7 @@ end
 nest_.disconnect = function(self)
     if self.drawloop then clock.cancel(self.drawloop) end
 end
-
--------------------------------------SCREEN--------------------------------------------------
+----------------------------------------------------------------------------------------------------
 
 _screen = _group:new()
 _screen.devk = 'screen'
@@ -145,7 +142,7 @@ _screen.affordance = _affordance:new {
     output = _output:new()
 }
 
---------------------------------------ENC--------------------------------------------------
+----------------------------------------------------------------------------------------------------
 
 _enc = _group:new()
 _enc.devk = 'enc'
@@ -412,75 +409,362 @@ _enc.option.input.muxhandler = _obj_:new {
     end
 }
 
--------------------------------------LINK----------------------------------------------
+----------------------------------------------------------------------------------------------------
 
-local pt = { separator = 0, number = 1, option = 2, control = 3, file = 4, taper = 5, trigger = 6, group = 7, text = 8, binary = 9 }
-local tp = tab.invert(pt)
-local err = function(t) print(t .. '.link: cannot link to param of type '..tp[p.t]) end
-local gp = function(id) return params:lookup_param(id) end
-local lnk = function(s, id, t, o)
-    if type(s.v) == 'table' then
-        print(t .. '.link: value cannot be a table')
-    else
-        o.label = p.name or id
-        o.value = function() return params:get(id) end
-        o.action = function(s, v) params:set(id, v) end
-        s:merge(o, true)
+_key = _group:new()
+_key.devk = 'key'
+
+_key.affordance = _affordance:new { 
+    n = 2,
+    edge = 1,
+    input = _input:new()
+}
+
+_key.affordance.input.filter = _enc.affordance.input.filter
+
+_key.muxaffordance = _key.affordance:new()
+
+_key.muxaffordance.input.filter = _enc.muxaffordance.input.filter
+
+_key.muxaffordance.input.muxhandler = _obj_:new {
+    point = function(s, z) end,
+    line = function(s, v, z) end
+}
+
+_key.muxaffordance.input.handler = _enc.muxaffordance.input.handler
+
+_key.number = _key.muxaffordance:new {
+    inc = 1,
+    wrap = false,
+    min = 0, max = 10,
+    edge = 1,
+    tdown = 0
+}
+
+_key.number.input.muxhandler = _obj_:new {
+    point = function(s, n, z) 
+        if z == s.edge then
+            s.wrap = true
+            return delta_number(s, s.p_.v, s.inc), util.time() - s.tdown, s.inc
+        else s.tdown = util.time()
+        end
+    end,
+    line = function(s, n, z) 
+        if z == s.edge then
+            local i = tab.key(s.p_.n, n)
+            local d = i == 2 and s.inc or -s.inc
+            return delta_number(s, s.p_.v, d), util.time() - s.tdown, d
+        else s.tdown = util.time()
+        end
     end
+}
+
+_key.option = _enc.muxaffordance:new {
+    value = 1,
+    --options = {},
+    wrap = false,
+    inc = 1,
+    edge = 1,
+    tdown = 0
+}
+
+_key.option.copy = function(self, o) 
+    o = _enc.muxaffordance.copy(self, o)
+
+    return o
 end
 
-_enc.control.link = function(s, id)
-    local p,t = gp(id), '_enc.control'
+_key.option.input.muxhandler = _obj_:new {
+    point = function(s, n, z) 
+        if z == s.edge then 
+            s.wrap = true
+            local v = delta_option_point(s, s.p_.v, s.inc)
+            return v, s.p_.options[v], util.time() - s.tdown, s.inc
+        else s.tdown = util.time()
+        end
+    end,
+    line = function(s, n, z) 
+        if z == s.edge then 
+            local i = tab.key(s.p_.n, n)
+            local d = i == 2 and s.inc or -s.inc
+            local v = delta_option_point(s, s.p_.v, d)
+            return v, s.p_.options[v], util.time() - s.tdown, d
+        else s.tdown = util.time()
+        end
+    end
+}
 
-    if p.t == pt.control then
-        lnk(s, id, t, {
-            controlspec = p.controlspec,
-        })
-    else err(t) end; return s
+_key.binary = _key.muxaffordance:new {
+    fingers = nil
+}
+
+_key.binary.copy = function(self, o) 
+    o = _key.muxaffordance.copy(self, o)
+
+    rawset(o, 'list', {})
+
+    local axis = o.p_.n
+    local v = minit(axis)
+    o.held = minit(axis)
+    o.tdown = minit(axis)
+    o.tlast = minit(axis)
+    o.theld = minit(axis)
+    o.vinit = minit(axis)
+    o.blank = {}
+
+    o.arg_defaults =  {
+        minit(axis),
+        minit(axis),
+        nil,
+        nil,
+        o.list
+    }
+
+    if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    
+    return o
 end
-_enc.number.link = function(s, id)
-    local p,t = gp(id), '_enc.number'
 
-    if p.t == pt.number then
-        lnk(s, id, t, {
-            min = p.min, max = p.max, wrap = p.wrap,
-        })
-    else err(t) end; return s
+_key.binary.input.muxhandler = _obj_:new {
+    point = function(s, n, z, min, max, wrap)
+        if z > 0 then 
+            s.tlast = s.tdown
+            s.tdown = util.time()
+        else s.theld = util.time() - s.tdown end
+        return z, s.theld
+    end,
+    line = function(s, n, z, min, max, wrap)
+        local i = tab.key(s.p_.n, n)
+        local add
+        local rem
+
+        if z > 0 then
+            add = i
+            s.tlast[i] = s.tdown[i]
+            s.tdown[i] = util.time()
+            table.insert(s.list, i)
+            if wrap and #s.list > wrap then rem = table.remove(s.list, 1) end
+        else
+            local k = tab.key(s.list, i)
+            if k then
+                rem = table.remove(s.list, k)
+            end
+            s.theld[i] = util.time() - s.tdown[i]
+        end
+        
+        if add then s.held[add] = 1 end
+        if rem then s.held[rem] = 0 end
+
+        return (#s.list >= min and (max == nil or #s.list <= max)) and s.held or nil, s.theld, nil, add, rem, s.list
+    end
+}
+
+_key.momentary = _key.binary:new()
+
+local function count(s) 
+    local min = 0
+    local max = nil
+
+    if type(s.p_.count) == "table" then 
+        max = s.p_.count[#s.p_.count]
+        min = #s.p_.count > 1 and s.p_.count[1] or 0
+    else max = s.p_.count end
+
+    return min, max
 end
-_enc.option.link = function(s, id)
-    local p,t = gp(id), '_enc.option'
 
-    if p.t == pt.option then
-        lnk(s, id, t, {
-            options = p.options,  
-        })
-    else err(t) end; return s
+local function fingers(s)
+    local min = 0
+    local max = nil
+
+    if type(s.p_.fingers) == "table" then 
+        max = s.p_.fingers[#s.p_.fingers]
+        min = #s.p_.fingers > 1 and s.p_.fingers[1] or 0
+    else max = s.p_.fingers end
+
+    return min, max
 end
-_key.number.link = function(s, id)
-    local p,t = gp(id), '_key.number'
 
-    if p.t == pt.number then
-        lnk(s, id, t, {
-            min = p.min, max = p.max, wrap = p.wrap,
-        })
-    else err(t) end; return s
+_key.momentary.input.muxhandler = _obj_:new {
+    point = function(s, n, z)
+        return _key.binary.input.muxhandler.point(s, n, z)
+    end,
+    line = function(s, n, z)
+        local max
+        local min, wrap = count(s)
+        if s.fingers then
+            min, max = fingers(s)
+        end        
+
+        local v,t,last,add,rem,list = _key.binary.input.muxhandler.line(s, n, z, min, max, wrap)
+        if v then
+            return v,t,last,add,rem,list
+        else
+            return s.vinit, s.vinit, nil, nil, nil, s.blank
+        end
+    end
+}
+
+_key.toggle = _key.binary:new { edge = 1, lvl = { 0, 15 } } -- it is wierd that lvl is being used w/o an output :/
+
+_key.toggle.copy = function(self, o) 
+    o = _key.binary.copy(self, o)
+
+    rawset(o, 'toglist', {})
+
+    local axis = o.p_.n
+
+    --o.tog = minit(axis)
+    o.ttog = minit(axis)
+
+    o.arg_defaults = {
+        minit(axis),
+        minit(axis),
+        nil,
+        nil,
+        o.toglist
+    }
+
+    return o
 end
-_key.option.link = function(s, id)
-    local p,t = gp(id), '_key.option'
 
-    if p.t == pt.option then
-        lnk(s, id, t, {
-            options = p.options,  
-        })
-    else err(t) end; return s
+local function toggle(s, v)
+    return (v + 1) % (((type(s.p_.lvl) == 'table') and #s.p_.lvl > 1) and (#s.p_.lvl) or 2)
 end
-local bin = function(t) return function(s, id)
-    local p = gp(id)
 
-    if p.t == pt.binary then
-        lnk(s, id, t, {})
-    else err(t) end; return s
-end end
-_key.trigger.link = bin('_key.trigger')
-_key.toggle.link = bin('_key.toggle')
-_key.momentary.link = bin('_key.momentary')
+_key.toggle.input.muxhandler = _obj_:new {
+    point = function(s, n, z)
+        local held = _key.binary.input.muxhandler.point(s, n, z)
+
+        if s.p_.edge == held then
+            return toggle(s, s.p_.v), s.theld, util.time() - s.tlast 
+        end
+    end,
+    line = function(s, n, z)
+        local held, theld, _, hadd, hrem, hlist = _key.binary.input.muxhandler.line(s, n, z, 0, nil)
+        local min, max = count(s)
+        local i
+        local add
+        local rem
+       
+        if s.edge == 1 and hadd then i = hadd end
+        if s.edge == 0 and hrem then i = hrem end
+ 
+        if i then   
+            if #s.toglist >= min then
+                local v = toggle(s, s.p_.v[i])
+                
+                if v > 0 then
+                    add = i
+                    
+                    if v == 1 then table.insert(s.toglist, i) end
+                    if max and #s.toglist > max then rem = table.remove(s.toglist, 1) end
+                else 
+                    local k = tab.key(s.toglist, i)
+                    if k then
+                        rem = table.remove(s.toglist, k)
+                    end
+                end
+            
+                s.ttog[i] = util.time() - s.tlast[i]
+
+                if add then s.p_.v[add] = v end
+                if rem then s.p_.v[rem] = 0 end
+
+            elseif #hlist >= min then
+                for j,w in ipairs(hlist) do
+                    s.toglist[j] = w
+                    s.p_.v[w] = 1
+                end
+            end
+            
+            if #s.toglist < min then
+                for j,w in ipairs(s.p_.v) do s.p_.v[j] = 0 end
+                s.toglist = {}
+            end
+
+            return s.p_.v, theld, s.ttog, add, rem, s.toglist
+        end
+    end
+}
+
+_key.trigger = _key.binary:new { edge = 1, blinktime = 0.1, persistent = false }
+
+_key.trigger.copy = function(self, o) 
+    o = _key.binary.copy(self, o)
+
+    rawset(o, 'triglist', {})
+
+    local axis = o.p_.n
+    o.tdelta = minit(axis)
+
+    o.arg_defaults = {
+        minit(axis),
+        minit(axis),
+        nil,
+        nil,
+        o.triglist
+    }
+    
+    return o
+end
+
+_key.trigger.input.muxhandler = _obj_:new {
+    point = function(s, n, z)
+        local held = _key.binary.input.muxhandler.point(s, n, z)
+        
+        if s.edge == held then
+            return 1, s.theld, util.time() - s.tlast
+        end
+    end,
+    line = function(s, n, z)
+        local max
+        local min, wrap = count(s)
+        if s.fingers then
+            min, max = fingers(s)
+        end        
+        local held, theld, _, hadd, hrem, hlist = _key.binary.input.muxhandler.line(s, n, z, 0, nil)
+        local ret = false
+        local lret, add
+
+        if s.edge == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
+            s.p_.v[hadd] = 1
+            s.tdelta[hadd] = util.time() - s.tlast[hadd]
+
+            ret = true
+            add = hadd
+            lret = hlist
+        elseif s.edge == 1 and #hlist == min and hadd then
+            for i,w in ipairs(hlist) do 
+                s.p_.v[w] = 1
+
+                s.tdelta[w] = util.time() - s.tlast[w]
+            end
+
+            ret = true
+            lret = hlist
+            add = hlist[#hlist]
+        elseif s.edge == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
+            s.triglist = {}
+
+            for i,w in ipairs(hlist) do 
+                if s.p_.v[w] <= 0 then
+                    s.p_.v[w] = 1
+                    s.tdelta[w] = util.time() - s.tlast[w]
+                    table.insert(s.triglist, w)
+                end
+            end
+            
+            if s.p_.v[hrem] <= 0 then
+                ret = true
+                lret = s.triglist
+                s.p_.v[hrem] = 1 
+                add = hrem
+                s.tdelta[hrem] = util.time() - s.tlast[hrem]
+                table.insert(s.triglist, hrem)
+            end
+        end
+            
+        if ret then return s.p_.v, s.theld, s.tdelta, add, nil, lret end
+    end
+}
