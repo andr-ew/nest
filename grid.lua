@@ -1585,6 +1585,7 @@ _grid.number.link = function(s, id)
         })
     else err(t) end; return s
 end
+_grid.range.link = function(s, id) gp(id) end
 local bin = function(t) return function(s, id)
     local p = gp(id)
 
