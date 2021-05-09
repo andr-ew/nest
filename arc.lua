@@ -400,7 +400,7 @@ _arc.option.link = function(s, id)
         lnk(s, id, t, {
             options = #p.options
         })
-    elseif p.t = pt.number then
+    elseif p.t == pt.number then
         lnk(s, id, t, {
             options = p.max,
             min = p.min, max = p.max

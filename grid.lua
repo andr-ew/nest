@@ -1582,7 +1582,7 @@ _grid.number.link = function(s, id)
 
     if p.t == pt.option then
         lnk(s, id, t, {})
-    elseif p.t = pt.number then
+    elseif p.t == pt.number then
         lnk(s, id, t, {
             min = p.min, max = p.max
         })
