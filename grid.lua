@@ -1543,5 +1543,58 @@ _grid.preset[1] = _preset:new {
         end
     end
 }
-    
+
+-------------------------------------LINK----------------------------------------------
+
+local pt = { separator = 0, number = 1, option = 2, control = 3, file = 4, taper = 5, trigger = 6, group = 7, text = 8, binary = 9 }
+local tp = tab.invert(pt)
+local err = function(t) print(t .. '.link: cannot link to param of type '..tp[p.t]) end
+local gp = function(id) 
+    local p = params:lookup_param(id)
+    if p then return p
+    else print('_affordance.link: no param with id "'..id..'"') end
+end
+local lnk = function(s, id, t, o)
+    if type(s.v) == 'table' then
+        print(t .. '.link: value cannot be a table')
+    else
+        o.label = o.label or s.label or gp(id).name or id
+        o.value = function() return params:get(id) end
+        o.action = function(s, v) params:set(id, v) end
+        s:merge(o)
+    end
+end
+
+_grid.control.link = function(s, id)
+    local p,t = gp(id), '_grid.control'
+
+    if p.t == pt.control then
+        lnk(s, id, t, {
+            controlspec = p.controlspec,
+        })
+    else err(t) end; return s
+end
+_grid.number.link = function(s, id)
+    local p,t = gp(id), '_enc.option'
+
+    if p.t == pt.option then
+        lnk(s, id, t, {})
+    elseif p.t = pt.number then
+        lnk(s, id, t, {
+            min = p.min, max = p.max
+        })
+    else err(t) end; return s
+end
+_grid.range.link = function(s, id) gp(id) end
+local bin = function(t) return function(s, id)
+    local p = gp(id)
+
+    if p.t == pt.binary then
+        lnk(s, id, t, {})
+    else err(t) end; return s
+end end
+_grid.trigger.link = bin('_grid.trigger')
+_grid.toggle.link = bin('_grid.toggle')
+_grid.momentary.link = bin('_grid.momentary')
+
 return _grid

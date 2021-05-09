@@ -776,7 +776,11 @@ _key.trigger.input.muxhandler = _obj_:new {
 local pt = { separator = 0, number = 1, option = 2, control = 3, file = 4, taper = 5, trigger = 6, group = 7, text = 8, binary = 9 }
 local tp = tab.invert(pt)
 local err = function(t) print(t .. '.link: cannot link to param of type '..tp[p.t]) end
-local gp = function(id) return params:lookup_param(id) end
+local gp = function(id) 
+    local p = params:lookup_param(id)
+    if p then return p
+    else print('_affordance.link: no param with id "'..id..'"') end
+end
 local lnk = function(s, id, t, o)
     if type(s.v) == 'table' then
         print(t .. '.link: value cannot be a table')
@@ -801,8 +805,14 @@ _enc.number.link = function(s, id)
     local p,t = gp(id), '_enc.number'
 
     if p.t == pt.number then
+        if math.abs(s.inc)%1 == 0 then
+            lnk(s, id, t, {
+                min = p.min, max = p.max, wrap = p.wrap,
+            })
+        else print(t..'.link: inc cannot be fractional for number param :/') end
+    elseif p.t == pt.control then
         lnk(s, id, t, {
-            min = p.min, max = p.max, wrap = p.wrap,
+            min = p.controlspec.min, max = p.controlspec.max, wrap = p.controlspec.wrap,
         })
     else err(t) end; return s
 end
