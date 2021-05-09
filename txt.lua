@@ -457,7 +457,7 @@ end
 _txt = _group:new()
 _txt.devk = 'screen'
 
-_txt.affordance = _screen.affordance:new {
+_txt.affordance = _screen:new {
     font_face = 1,
     font_size = 8,
     lvl = 15,
@@ -473,6 +473,7 @@ _txt.affordance = _screen.affordance:new {
     line_wrap = nil,
     font_headroom = 3/8,
     font_leftroom = 1/16,
+    formatter = function(s, ...) return ... end,
     scroll_window = nil, -- 6
     scroll_focus = nil, -- 3 or { 1, 6 }
     selection = nil -- 1 or { 1, 2 } or { x = 1, y = 2 }, or { { x = 1, y = 2 }, x = 3, y = 4 } }
@@ -561,8 +562,7 @@ _txt.labelaffordance = _txt.affordance:new {
     label = function(s) if type(s.p.k) == 'string' then return s.p.k end end,
     lvl = function(s) return s.p_.label and { 4, 15 } or 15 end,
     step = 0.01,
-    margin = 5,
-    formatter = function(s, ...) return ... end
+    margin = 5
 }
 
 local function labeltxt(s)

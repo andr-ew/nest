@@ -136,13 +136,14 @@ nest_.disconnect = function(self)
 end
 -----------------------------------SCREEN------------------------------------------------
 
-_screen = _group:new()
-_screen.devk = 'screen'
+_screen_group = _group:new()
+_screen_group.devk = 'screen'
 
-_screen.affordance = _affordance:new {
+_screen_group.affordance = _affordance:new {
     aa = 0,
     output = _output:new()
 }
+_screen = _screen_group.affordance
 
 ------------------------------------ENC---------------------------------------------------
 
