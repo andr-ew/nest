@@ -561,7 +561,8 @@ _txt.labelaffordance = _txt.affordance:new {
     label = function(s) if type(s.p.k) == 'string' then return s.p.k end end,
     lvl = function(s) return s.p_.label and { 4, 15 } or 15 end,
     step = 0.01,
-    margin = 5
+    margin = 5,
+    formatter = function(s, ...) return ... end
 }
 
 local function labeltxt(s)
@@ -569,9 +570,9 @@ local function labeltxt(s)
         if type(s.p_.v) == 'table' then
             local vround = {}
             for i,v in ipairs(s.p_.v) do vround[i] = util.round(v, s.p_.step) end
-            return { s.p_.label, table.unpack(vround) }
-        else return { s.p_.label, util.round(s.p_.v, s.p_.step) } end
-    else return util.round(s.p_.v, s.p_.step) end
+            return { s.p_.label, s:formatter(table.unpack(vround)) }
+        else return { s.p_.label, s:formatter(util.round(s.p_.v, s.p_.step)) } end
+    else return s:formatter(util.round(s.p_.v, s.p_.step)) end
 end
 
 _txt.labelaffordance.output.txt = labeltxt
