@@ -1030,20 +1030,22 @@ _grid.number.output.muxredraw = _obj_:new {
     line_x = function(s, g, v)
         for i = s.p_.x[1], s.p_.x[2] do
             local lvl = lvl(s, (s.p_.v == i - s.p_.x[1] + 1) and 1 or 0, i - s.p_.x[1] + 1)
-            if lvl > 0 then g:led(i, s.p_.y, lvl) end
+            if lvl > 0 then g:led(i-s.p_.min, s.p_.y, lvl) end
         end
     end,
     line_y = function(s, g, v)
         for i = s.p_.y[1], s.p_.y[2] do
             local lvl = lvl(s, (s.p_.v == s.p_.y[2] - i + 1) and 1 or 0, s.p_.y[2] - i + 1)
-            if lvl > 0 then g:led(s.p_.x, i, lvl) end
+            if lvl > 0 then g:led(s.p_.x, i-s.p_.min, lvl) end
         end
     end,
     plane = function(s, g, v)
+        local m = s.p_.min
+        m = type(m) ~= 'table' and { m, m } or m
         for i = s.p_.x[1], s.p_.x[2] do
             for j = s.p_.y[1], s.p_.y[2] do
                 local li, lj = i - s.p_.x[1] + 1, s.p_.y[2] - j + 1
-                local l = lvl(s, ((s.p_.v.x == li) and (s.p_.v.y == lj)) and 1 or 0, li, lj)
+                local l = lvl(s, ((s.p_.v.x+m == li) and (s.p_.v.y+m == lj)) and 1 or 0, li, lj)
                 if l > 0 then g:led(i, j, l) end
             end
         end
