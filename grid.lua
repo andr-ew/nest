@@ -880,7 +880,7 @@ _grid.fill.output.muxredraw = _obj_:new {
     plane = _grid.binary.output.muxredraw.plane
 }
 
-_grid.number = _grid.muxaffordance:new { value = 1, edge = 1, fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, vlast = 1, min = 0 }
+_grid.number = _grid.muxaffordance:new { v = 1, edge = 1, fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, vlast = 1, min = 0 }
 
 _grid.number.new = function(self, o) 
     o = _grid.muxaffordance.new(self, o)
@@ -1045,7 +1045,7 @@ _grid.number.output.muxredraw = _obj_:new {
         for i = s.p_.x[1], s.p_.x[2] do
             for j = s.p_.y[1], s.p_.y[2] do
                 local li, lj = i - s.p_.x[1] + 1, s.p_.y[2] - j + 1
-                local l = lvl(s, ((s.p_.v.x+m == li) and (s.p_.v.y+m == lj)) and 1 or 0, li, lj)
+                local l = lvl(s, ((s.p_.v.x+m[1] == li) and (s.p_.v.y+m[2] == lj)) and 1 or 0, li, lj)
                 if l > 0 then g:led(i, j, l) end
             end
         end
