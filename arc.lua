@@ -353,19 +353,19 @@ _arc.key.toggle.input.handler = function(s, n, z)
     if z == s.p_.edge then return ~ s.p_.v & 1, theld end
 end
 
--------------------------------------LINK----------------------------------------------
+-------------------------------------BINDERS----------------------------------------------
 
 local pt = { separator = 0, number = 1, option = 2, control = 3, file = 4, taper = 5, trigger = 6, group = 7, text = 8, binary = 9 }
 local tp = tab.invert(pt)
-local err = function(t) print(t .. '.link: cannot link to param of type '..tp[p.t]) end
+local err = function(t) print(t .. '.param: cannot bind to param of type '..tp[p.t]) end
 local gp = function(id) 
     local p = params:lookup_param(id)
     if p then return p
-    else print('_affordance.link: no param with id "'..id..'"') end
+    else print('_affordance.param: no param with id "'..id..'"') end
 end
 local lnk = function(s, id, t, o)
     if type(s.v) == 'table' then
-        print(t .. '.link: value cannot be a table')
+        print(t .. '.param: value cannot be a table')
     else
         o.label = o.label or s.label or gp(id).name or id
         o.value = function() return params:get(id) end
@@ -374,7 +374,7 @@ local lnk = function(s, id, t, o)
     end
 end
 
-_arc.control.link = function(s, id)
+_arc.control.param = function(s, id)
     local p,t = gp(id), '_arc.control'
 
     if p.t == pt.control then
@@ -383,7 +383,7 @@ _arc.control.link = function(s, id)
         })
     else err(t) end; return s
 end
-_arc.number.link = function(s, id)
+_arc.number.param = function(s, id)
     local p,t = gp(id), '_arc.control'
 
     if p.t == pt.control then
@@ -393,7 +393,7 @@ _arc.number.link = function(s, id)
         })
     else err(t) end; return s
 end
-_arc.option.link = function(s, id)
+_arc.option.param = function(s, id)
     local p,t = gp(id), '_arc.option'
 
     if p.t == pt.option then

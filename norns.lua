@@ -780,19 +780,19 @@ _key.trigger.input.muxhandler = _obj_:new {
     end
 }
 
--------------------------------------LINK----------------------------------------------
+-------------------------------------BINDERS----------------------------------------------
 
 local pt = { separator = 0, number = 1, option = 2, control = 3, file = 4, taper = 5, trigger = 6, group = 7, text = 8, binary = 9 }
 local tp = tab.invert(pt)
-local err = function(t) print(t .. '.link: cannot link to param of type '..tp[p.t]) end
+local err = function(t) print(t .. '.param: cannot bind to param of type '..tp[p.t]) end
 local gp = function(id) 
     local p = params:lookup_param(id)
     if p then return p
-    else print('_affordance.link: no param with id "'..id..'"') end
+    else print('_affordance.param: no param with id "'..id..'"') end
 end
 local lnk = function(s, id, t, o)
     if type(s.v) == 'table' then
-        print(t .. '.link: value cannot be a table')
+        print(t .. '.param: value cannot be a table')
     else
         o.label = o.label or s.label or gp(id).name or id
         o.value = function() return params:get(id) end
@@ -801,7 +801,7 @@ local lnk = function(s, id, t, o)
     end
 end
 
-_enc.control.link = function(s, id)
+_enc.control.param = function(s, id)
     local p,t = gp(id), '_enc.control'
 
     if p.t == pt.control then
@@ -810,7 +810,7 @@ _enc.control.link = function(s, id)
         })
     else err(t) end; return s
 end
-_enc.number.link = function(s, id)
+_enc.number.param = function(s, id)
     local p,t = gp(id), '_enc.number'
 
     if p.t == pt.number then
@@ -818,14 +818,14 @@ _enc.number.link = function(s, id)
             lnk(s, id, t, {
                 min = p.min, max = p.max, wrap = p.wrap,
             })
-        else print(t..'.link: inc cannot be fractional for number param :/') end
+        else print(t..'.param: inc cannot be fractional for number param :/') end
     elseif p.t == pt.control then
         lnk(s, id, t, {
             min = p.controlspec.min, max = p.controlspec.max, wrap = p.controlspec.wrap,
         })
     else err(t) end; return s
 end
-_enc.option.link = function(s, id)
+_enc.option.param = function(s, id)
     local p,t = gp(id), '_enc.option'
 
     if p.t == pt.option then
@@ -834,7 +834,7 @@ _enc.option.link = function(s, id)
         })
     else err(t) end; return s
 end
-_key.number.link = function(s, id)
+_key.number.param = function(s, id)
     local p,t = gp(id), '_key.number'
 
     if p.t == pt.number then
@@ -843,7 +843,7 @@ _key.number.link = function(s, id)
         })
     else err(t) end; return s
 end
-_key.option.link = function(s, id)
+_key.option.param = function(s, id)
     local p,t = gp(id), '_key.option'
 
     if p.t == pt.option then
@@ -859,6 +859,6 @@ local bin = function(t) return function(s, id)
         lnk(s, id, t, {})
     else err(t) end; return s
 end end
-_key.trigger.link = bin('_key.trigger')
-_key.toggle.link = bin('_key.toggle')
-_key.momentary.link = bin('_key.momentary')
+_key.trigger.param = bin('_key.trigger')
+_key.toggle.param = bin('_key.toggle')
+_key.momentary.param = bin('_key.momentary')
