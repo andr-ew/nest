@@ -406,7 +406,7 @@ _grid.momentary.input.muxhandler = _obj_:new {
     end
 }
 
-_grid.toggle = _grid.binary:new { edge = 1 }
+_grid.toggle = _grid.binary:new { edge = 1, min = -math.huge, max = math.huge }
 
 _grid.toggle.new = function(self, o) 
     o = _grid.binary.new(self, o)
