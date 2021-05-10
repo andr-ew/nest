@@ -422,12 +422,14 @@ _enc.option.input.muxhandler = _obj_:new {
 
 -----------------------------------KEY------------------------------------------------------
 
+local edge = { rising = 1, falling = 0, both = 2 }
+
 _key = _group:new()
 _key.devk = 'key'
 
 _key.affordance = _affordance:new { 
     n = 2,
-    edge = 1,
+    edge = 'rising',
     input = _input:new()
 }
 
@@ -448,20 +450,20 @@ _key.number = _key.muxaffordance:new {
     inc = 1,
     wrap = false,
     min = 0, max = 10,
-    edge = 1,
+    edge = 'rising',
     tdown = 0
 }
 
 _key.number.input.muxhandler = _obj_:new {
     point = function(s, n, z) 
-        if z == s.edge then
+        if z == edge[s.p_.edge] then
             s.wrap = true
             return delta_number(s, s.p_.v, s.inc), util.time() - s.tdown, s.inc
         else s.tdown = util.time()
         end
     end,
     line = function(s, n, z) 
-        if z == s.edge then
+        if z == edge[s.p_.edge] then
             local i = tab.key(s.p_.n, n)
             local d = i == 2 and s.inc or -s.inc
             return delta_number(s, s.p_.v, d), util.time() - s.tdown, d
@@ -475,7 +477,7 @@ _key.option = _enc.muxaffordance:new {
     --options = {},
     wrap = false,
     inc = 1,
-    edge = 1,
+    edge = 'rising',
     tdown = 0
 }
 
@@ -487,7 +489,7 @@ end
 
 _key.option.input.muxhandler = _obj_:new {
     point = function(s, n, z) 
-        if z == s.edge then 
+        if z == edge[s.p_.edge] then 
             s.wrap = true
             local v = delta_option_point(s, s.p_.v, s.inc)
             return v, s.p_.options[v], util.time() - s.tdown, s.inc
@@ -495,7 +497,7 @@ _key.option.input.muxhandler = _obj_:new {
         end
     end,
     line = function(s, n, z) 
-        if z == s.edge then 
+        if z == edge[s.p_.edge] then 
             local i = tab.key(s.p_.n, n)
             local d = i == 2 and s.inc or -s.inc
             local v = delta_option_point(s, s.p_.v, d)
@@ -616,7 +618,7 @@ _key.momentary.input.muxhandler = _obj_:new {
     end
 }
 
-_key.toggle = _key.binary:new { edge = 1, lvl = { 0, 15 } } -- it is wierd that lvl is being used w/o an output :/
+_key.toggle = _key.binary:new { edge = 'rising', lvl = { 0, 15 } } -- it is wierd that lvl is being used w/o an output :/
 
 _key.toggle.copy = function(self, o) 
     o = _key.binary.copy(self, o)
@@ -647,7 +649,7 @@ _key.toggle.input.muxhandler = _obj_:new {
     point = function(s, n, z)
         local held = _key.binary.input.muxhandler.point(s, n, z)
 
-        if s.p_.edge == held then
+        if edge[s.p_.edge] == held then
             return toggle(s, s.p_.v), s.theld, util.time() - s.tlast 
         end
     end,
@@ -658,8 +660,8 @@ _key.toggle.input.muxhandler = _obj_:new {
         local add
         local rem
        
-        if s.edge == 1 and hadd then i = hadd end
-        if s.edge == 0 and hrem then i = hrem end
+        if edge[s.p_.edge] == 1 and hadd then i = hadd end
+        if edge[s.p_.edge] == 0 and hrem then i = hrem end
  
         if i then   
             if #s.toglist >= min then
@@ -699,7 +701,7 @@ _key.toggle.input.muxhandler = _obj_:new {
     end
 }
 
-_key.trigger = _key.binary:new { edge = 1, blinktime = 0.1, persistent = false }
+_key.trigger = _key.binary:new { edge = 'rising', blinktime = 0.1, persistent = false }
 
 _key.trigger.copy = function(self, o) 
     o = _key.binary.copy(self, o)
@@ -724,11 +726,12 @@ _key.trigger.input.muxhandler = _obj_:new {
     point = function(s, n, z)
         local held = _key.binary.input.muxhandler.point(s, n, z)
         
-        if s.edge == held then
+        if edge[s.p_.edge] == held then
             return 1, s.theld, util.time() - s.tlast
         end
     end,
     line = function(s, n, z)
+        local e = edge[s.p_.edge]
         local max
         local min, wrap = count(s)
         if s.fingers then
@@ -738,14 +741,14 @@ _key.trigger.input.muxhandler = _obj_:new {
         local ret = false
         local lret, add
 
-        if s.edge == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
+        if e == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
             s.p_.v[hadd] = 1
             s.tdelta[hadd] = util.time() - s.tlast[hadd]
 
             ret = true
             add = hadd
             lret = hlist
-        elseif s.edge == 1 and #hlist == min and hadd then
+        elseif e == 1 and #hlist == min and hadd then
             for i,w in ipairs(hlist) do 
                 s.p_.v[w] = 1
 
@@ -755,7 +758,7 @@ _key.trigger.input.muxhandler = _obj_:new {
             ret = true
             lret = hlist
             add = hlist[#hlist]
-        elseif s.edge == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
+        elseif e == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
             s.triglist = {}
 
             for i,w in ipairs(hlist) do 
