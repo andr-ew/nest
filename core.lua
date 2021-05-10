@@ -182,16 +182,16 @@ local function index_nickname(t, k)
 end
 
 local function format_nickname(t, k, v) 
-    if k == 'en' and not rawget(t, 'enabled') then
+    if k == 'en' then
         rawset(t, 'enabled', v)
         t['en'] = nil
     end
 
     if rawget(t, 'is_affordance') then
-        if k == 'v' and not rawget(t, 'value') then
+        if k == 'v' then
             rawset(t, 'value', v)
             t['v'] = nil
-        elseif k == 'lvl' and not rawget(t, 'level') then
+        elseif k == 'lvl' then
             rawset(t, 'level', v)
             t['lvl'] = nil
         end
@@ -498,12 +498,12 @@ function nest_:new(o, ...)
         __newindex = function(t, k, v) o[k] = v end
     })
     
+    o = self:copy(o)
+    
     for k,v in pairs(o) do 
         formattype(o, k, v)
         format_nickname(o, k, v)
     end
-
-    o = self:copy(o)
     
     return o
 end
