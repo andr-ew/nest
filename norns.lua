@@ -797,9 +797,11 @@ local lnk = function(s, id, t, o)
     if type(s.v) == 'table' then
         print(t .. '.param: value cannot be a table')
     else
-        o.label = o.label or s.label or gp(id).name or id
+        --o.label = (s.label ~= nil) and s.label or gp(id).name or id
         o.value = function() return params:get(id) end
         o.action = function(s, v) params:set(id, v) end
+        o.formatter = o.formatter or gp(id).formatter and 
+            function(s,v) return gp(id).formatter({value = v}) end
         s:merge(o)
     end
 end
@@ -817,11 +819,9 @@ _enc.number.param = function(s, id)
     local p,t = gp(id), '_enc.number'
 
     if p.t == pt.number then
-        if math.abs(s.inc)%1 == 0 then
-            lnk(s, id, t, {
-                min = p.min, max = p.max, wrap = p.wrap,
-            })
-        else print(t..'.param: inc cannot be fractional for number param :/') end
+        lnk(s, id, t, {
+            min = p.min, max = p.max, wrap = p.wrap, inc = 1
+        })
     elseif p.t == pt.control then
         lnk(s, id, t, {
             min = p.controlspec.min, max = p.controlspec.max, wrap = p.controlspec.wrap,

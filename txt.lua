@@ -559,7 +559,7 @@ _txt.label = _txt.affordance:new {
 _txt.label.output.txt = function(s) return s.p_.v end
 
 _txt.labelaffordance = _txt.affordance:new {
-    label = function(s) if type(s.p.k) == 'string' then return s.p.k end end,
+    label = function(s) if s.p and type(s.p.k) == 'string' then return s.p.k end end,
     lvl = function(s) return s.p_.label and { 4, 15 } or 15 end,
     step = 0.01,
     margin = 5
@@ -632,7 +632,7 @@ _txt.option:copy(_txt.key.option)
 
 _txt.binary = _txt.affordance:new {
     lvl = { 4, 15 },
-    label = function(s) return s.p.k end
+    label = function(s) return s.p and s.p.k end
 }
 _txt.binary.selected = function(s) 
     if type(s.p_.n) == 'table' then
