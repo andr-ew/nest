@@ -627,7 +627,7 @@ _affordance = nest_:new {
     devk = nil,
     action = function() end,
     init = function(self)
-        if self.p_.persistent then self:update() end
+        if self.p_.persistent and not type(self.v)=='function' then self:update() end
 
         nest_.init(self)
     end,

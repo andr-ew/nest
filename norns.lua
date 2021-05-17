@@ -251,11 +251,11 @@ end
 
 _enc.number.input.muxhandler = _obj_:new {
     point = function(s, n, d) 
-        return delta_number(s, s.p_.v, d), d
+        return delta_number(s, s.p_.v, d), d * s.inc
     end,
     line = function(s, n, d) 
         local i = tab.key(s.p_.n, n)
-        local v = delta_number(s, s.p_.v[i], d)
+        local v = delta_number(s, s.p_.v[i], d * s.inc)
         if v then
             local del = minit(s.p_.n)
             del[i] = d
