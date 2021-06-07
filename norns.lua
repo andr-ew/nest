@@ -862,6 +862,18 @@ local bin = function(t) return function(s, id)
         lnk(s, id, t, {})
     else err(t) end; return s
 end end
-_key.trigger.param = bin('_key.trigger')
 _key.toggle.param = bin('_key.toggle')
 _key.momentary.param = bin('_key.momentary')
+_key.trigger.param = function(s, id)
+    local p,t = gp(id), '_key.trigger'
+
+    if p.t == pt.binary then
+        if type(s.v) == 'table' then
+            print(t .. '.param: value cannot be a table')
+        else
+            --o.label = (s.label ~= nil) and s.label or gp(id).name or id
+            s.action = function(s, v) params:delta(id) end
+        end
+    else err(t) end; return s
+end
+
