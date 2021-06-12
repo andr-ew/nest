@@ -855,15 +855,27 @@ _key.option.param = function(s, id)
         })
     else err(t) end; return s
 end
-local bin = function(t) return function(s, id)
-    local p = gp(id)
+_key.toggle.param = = function(s, id)
+    local p,t = gp(id), '_key.toggle'
 
     if p.t == pt.binary then
         lnk(s, id, t, {})
+    elseif p.t == pt.option then
+        if type(s.v) == 'table' then
+            print(t .. '.param: value cannot be a table')
+        else
+            o.value = function() return params:get(id) - 1 end
+            o.action = function(s, v) params:set(id, v + 1) end
+        end
     else err(t) end; return s
-end end
-_key.toggle.param = bin('_key.toggle')
-_key.momentary.param = bin('_key.momentary')
+end
+_key.momentary.param = function(s, id)
+    local p = gp(id)
+
+    if p.t == pt.binary then
+        lnk(s, id, '_key.momentary', {})
+    else err(t) end; return s
+end
 _key.trigger.param = function(s, id)
     local p,t = gp(id), '_key.trigger'
 

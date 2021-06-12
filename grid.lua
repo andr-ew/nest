@@ -1602,16 +1602,38 @@ _grid.number.param = function(s, id)
         })
     else err(t) end; return s
 end
-_grid.range.param = function(s, id) gp(id) end
-local bin = function(t) return function(s, id)
-    local p = gp(id)
+_grid.toggle.param = = function(s, id)
+    local p,t = gp(id), '_grid.toggle'
 
     if p.t == pt.binary then
         lnk(s, id, t, {})
+    elseif p.t == pt.option then
+        if type(s.v) == 'table' then
+            print(t .. '.param: value cannot be a table')
+        else
+            o.value = function() return params:get(id) - 1 end
+            o.action = function(s, v) params:set(id, v + 1) end
+        end
     else err(t) end; return s
-end end
-_grid.trigger.param = bin('_grid.trigger')
-_grid.toggle.param = bin('_grid.toggle')
-_grid.momentary.param = bin('_grid.momentary')
+end
+_grid.momentary.param = function(s, id)
+    local p = gp(id)
+
+    if p.t == pt.binary then
+        lnk(s, id, '_grid.momentary', {})
+    else err(t) end; return s
+end
+_grid.trigger.param = function(s, id)
+    local p,t = gp(id), '_grid.trigger'
+
+    if p.t == pt.binary then
+        if type(s.v) == 'table' then
+            print(t .. '.param: value cannot be a table')
+        else
+            --o.label = (s.label ~= nil) and s.label or gp(id).name or id
+            s.action = function(s, v) params:delta(id) end
+        end
+    else err(t) end; return s
+end
 
 return _grid
