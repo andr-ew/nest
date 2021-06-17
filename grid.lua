@@ -178,7 +178,8 @@ _grid.binary.new = function(self, o)
 end
 
 function _grid.binary:clear()
-    self.v = binaryvals(self)
+    if type(self.v) ~= 'function' then self.v = binaryvals(self) end
+    --self:update() --?
 end
 
 _grid.binary.input.muxhandler = _obj_:new {
@@ -345,7 +346,7 @@ _grid.binary.output.muxredraw = _obj_:new {
     end
 }
 
-_grid.momentary = _grid.binary:new { edge = 2, persistent = false }
+_grid.momentary = _grid.binary:new { edge = 'both', persistent = false }
 
 local function count(s) 
     local min = 0
@@ -405,7 +406,9 @@ _grid.momentary.input.muxhandler = _obj_:new {
     end
 }
 
-_grid.toggle = _grid.binary:new { edge = 1 }
+local edge = { rising = 1, falling = 0, both = 2 }
+
+_grid.toggle = _grid.binary:new { edge = 'rising', min = -math.huge, max = math.huge }
 
 _grid.toggle.new = function(self, o) 
     o = _grid.binary.new(self, o)
@@ -492,13 +495,14 @@ end
 _grid.toggle.input.muxhandler = _obj_:new {
     point = function(s, x, y, z)
         local held = _grid.binary.input.muxhandler.point(s, x, y, z)
+        local e = edge[s.p_.edge]
 
-        if s.edge == held or (held == 1 and s.edge == 2) then
-            return toggle(s, s.v, s.p_.lvl, s.p_.range, s.p_.include),
+        if e == held or (held == 1 and e == 2) then
+            return toggle(s, s.p_.v, s.p_.lvl,  { s.p_.min, s.p_.max }, s.p_.include),
                 s.theld,
                 util.time() - s.tlast
-        elseif s.edge == 2 then
-            return s.v, s.theld, util.time() - s.tlast
+        elseif e == 2 then
+            return s.p_.v, s.theld, util.time() - s.tlast
         end
     end,
     line = function(s, x, y, z)
@@ -507,18 +511,19 @@ _grid.toggle.input.muxhandler = _obj_:new {
         local i
         local add
         local rem
+        local e = edge[s.p_.edge]
        
-        if s.edge > 0 and hadd then i = hadd end
-        if s.edge == 0 and hrem then i = hrem end
+        if e > 0 and hadd then i = hadd end
+        if e == 0 and hrem then i = hrem end
  
         if i then   
             if #s.toglist >= min then
                 local lvl = s.p_('lvl', i)
-                local range = s.p_('range', i)
+                local range = { s.p_('min', i), s.p_('max', i) }
                 local include = s.p_('include', i)
                 local v = toggle(
                     s, 
-                    s.v[i], 
+                    s.p_.v[i], 
                     lvl,
                     range,
                     include
@@ -540,25 +545,25 @@ _grid.toggle.input.muxhandler = _obj_:new {
             
                 s.ttog[i] = util.time() - s.tlast[i]
 
-                if add then s.v[add] = v end
-                if rem then s.v[rem] = togglelow(s, s.p_('range', rem), s.p_('include', rem)) end
+                if add then s.p_.v[add] = v end
+                if rem then s.p_.v[rem] = togglelow(s, { s.p_('min', rem), s.p_('max', rem) }, s.p_('include', rem)) end
 
             elseif #hlist >= min then
                 for j,w in ipairs(hlist) do
                     s.toglist[j] = w
-                    s.v[w] = toggleset(s, 1, s.p_('lvl', w), s.p_('range', w), s.p_('include', w))
+                    s.p_.v[w] = toggleset(s, 1, s.p_('lvl', w), { s.p_('min', w), s.p_('max', w) }, s.p_('include', w))
                 end
             end
             
             if #s.toglist < min then
-                for j,w in ipairs(s.v) do s.v[j] = low end
+                for j,w in ipairs(s.p_.v) do s.p_.v[j] = low end
                 --s.toglist = {}
                 s:replace('toglist', {})
             end
 
-            return s.v, theld, s.ttog, add, rem, s.toglist
-        elseif s.edge == 2 then
-            return s.v, theld, s.ttog, nil, nil, s.toglist
+            return s.p_.v, theld, s.ttog, add, rem, s.toglist
+        elseif e == 2 then
+            return s.p_.v, theld, s.ttog, nil, nil, s.toglist
         end
     end,
     plane = function(s, x, y, z)
@@ -567,18 +572,19 @@ _grid.toggle.input.muxhandler = _obj_:new {
         local i
         local add
         local rem
+        local e = edge[s.p_.edge]
        
-        if s.edge > 0 and hadd then i = hadd end
-        if s.edge == 0 and hrem then i = hrem end
+        if e > 0 and hadd then i = hadd end
+        if e == 0 and hrem then i = hrem end
         
         if i and held then   
             if #s.toglist >= min then
                 local lvl = s.p_('lvl', i.x, i.y)
-                local range = s.p_('range', i.x, i.y)
+                local range = { s.p_('min', i.x, i.y), s.p_('max', i.x, i.y) }
                 local include = s.p_('include', i.x, i.y)
                 local v = toggle(
                     s, 
-                    s.v[i.x][i.y], 
+                    s.p_.v[i.x][i.y], 
                     lvl,
                     range,
                     include
@@ -608,36 +614,36 @@ _grid.toggle.input.muxhandler = _obj_:new {
             
                 s.ttog[i.x][i.y] = util.time() - s.tlast[i.x][i.y]
 
-                if add then s.v[add.x][add.y] = v end
-                if rem then s.v[rem.x][rem.y] = togglelow(s, s.p_('range', rem.x, rem.y), s.p_('include', rem.x, rem.y)) end
+                if add then s.p_.v[add.x][add.y] = v end
+                if rem then s.p_.v[rem.x][rem.y] = togglelow(s, { s.p_('min', rem.x, rem.y), s.p_('max', rem.x, rem.y) }, s.p_('include', rem.x, rem.y)) end
 
             elseif #hlist >= min then
                 for j,w in ipairs(hlist) do
                     s.toglist[j] = w
-                    s.v[w.x][w.y] = toggleset(s, 1, s.p_('lvl', w.x, w.y), s.p_('range', w.x, w.y), s.p_('include', w.x, w.y))
+                    s.p_.v[w.x][w.y] = toggleset(s, 1, s.p_('lvl', w.x, w.y), { s.p_('min', w.x, w.y), s.p_('max', w.x, w.y) }, s.p_('include', w.x, w.y))
                 end
             end
 
             if #s.toglist < min then
-                for x,w in ipairs(s.v) do 
+                for x,w in ipairs(s.p_.v) do 
                     for y,_ in ipairs(w) do
-                        s.v[x][y] = low
+                        s.p_.v[x][y] = low
                     end
                 end
                 --s.toglist = {}
                 s:replace('toglist', {})
             end
 
-            return s.v, theld, s.ttog, add, rem, s.toglist
-        elseif s.edge == 2 then
-            return s.v, theld, s.ttog, nil, nil, s.toglist
+            return s.p_.v, theld, s.ttog, add, rem, s.toglist
+        elseif e == 2 then
+            return s.p_.v, theld, s.ttog, nil, nil, s.toglist
         end
     end
 }
 
 _grid.trigger = _grid.binary:new { 
     persistent = false,
-    edge = 1, 
+    edge = 'rising',
     lvl = {
         0,
         function(s, draw)
@@ -671,8 +677,9 @@ end
 _grid.trigger.input.muxhandler = _obj_:new {
     point = function(s, x, y, z)
         local held = _grid.binary.input.muxhandler.point(s, x, y, z)
+        local e = edge[s.p_.edge]
         
-        if s.edge == held then
+        if e == held then
             return 1, s.theld, util.time() - s.tlast
         end
     end,
@@ -684,45 +691,49 @@ _grid.trigger.input.muxhandler = _obj_:new {
         end        
         local held, theld, _, hadd, hrem, hlist = _grid.binary.input.muxhandler.line(s, x, y, z, 0, nil)
         local ret = false
-        local lret
+        local lret, add
+        local e = edge[s.p_.edge]
 
-        if s.edge == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
-            s.v[hadd] = 1
+        if e == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
+            s.p_.v[hadd] = 1
             s.tdelta[hadd] = util.time() - s.tlast[hadd]
 
             ret = true
+            add = hadd
             lret = hlist
-        elseif s.edge == 1 and #hlist == min and hadd then
+        elseif e == 1 and #hlist == min and hadd then
             for i,w in ipairs(hlist) do 
-                s.v[w] = 1
+                s.p_.v[w] = 1
 
                 s.tdelta[w] = util.time() - s.tlast[w]
             end
 
             ret = true
             lret = hlist
-        elseif s.edge == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
+            add = hlist[#hlist]
+        elseif e == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
             --s.triglist = {}
             s:replace('triglist', {})
 
             for i,w in ipairs(hlist) do 
-                if s.v[w] <= 0 then
-                    s.v[w] = 1
+                if s.p_.v[w] <= 0 then
+                    s.p_.v[w] = 1
                     s.tdelta[w] = util.time() - s.tlast[w]
                     table.insert(s.triglist, w)
                 end
             end
             
-            if s.v[hrem] <= 0 then
+            if s.p_.v[hrem] <= 0 then
                 ret = true
                 lret = s.triglist
-                s.v[hrem] = 1 
+                add = hrem
+                s.p_.v[hrem] = 1 
                 s.tdelta[hrem] = util.time() - s.tlast[hrem]
                 table.insert(s.triglist, hrem)
             end
         end
             
-        if ret then return s.v, s.tdelta, s.theld, nil, nil, lret end
+        if ret then return s.p_.v, s.theld, s.tdelta, add, nil, lret end
     end,
     plane = function(s, x, y, z)
         local max
@@ -732,45 +743,49 @@ _grid.trigger.input.muxhandler = _obj_:new {
         end        
         local held, theld, _, hadd, hrem, hlist = _grid.binary.input.muxhandler.plane(s, x, y, z, 0, nil)
         local ret = false
-        local lret
+        local lret, add
+        local e = edge[s.p_.edge]
 
-        if s.edge == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
-            s.v[hadd.x][hadd.y] = 1
+        if e == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
+            s.p_.v[hadd.x][hadd.y] = 1
             s.tdelta[hadd.x][hadd.y] = util.time() - s.tlast[hadd.x][hadd.y]
 
             ret = true
+            add = hadd
             lret = hlist
-        elseif s.edge == 1 and #hlist == min and hadd then
+        elseif e == 1 and #hlist == min and hadd then
             for i,w in ipairs(hlist) do 
-                s.v[w.x][w.y] = 1
+                s.p_.v[w.x][w.y] = 1
 
                 s.tdelta[w.x][w.y] = util.time() - s.tlast[w.x][w.y]
             end
 
             ret = true
+            add = hlist[#hlist]
             lret = hlist
-        elseif s.edge == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
+        elseif e == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
             --s.triglist = {}
             s:replace('triglist', {})
 
             for i,w in ipairs(hlist) do 
-                if s.v[w.x][w.y] <= 0 then
-                    s.v[w.x][w.y] = 1
+                if s.p_.v[w.x][w.y] <= 0 then
+                    s.p_.v[w.x][w.y] = 1
                     s.tdelta[w.x][w.y] = util.time() - s.tlast[w.x][w.y]
                     table.insert(s.triglist, w)
                 end
             end
             
-            if s.v[hrem.x][hrem.y] <= 0 then
+            if s.p_.v[hrem.x][hrem.y] <= 0 then
                 ret = true
                 lret = s.triglist
-                s.v[hrem.x][hrem.y] = 1 
+                add = hrem
+                s.p_.v[hrem.x][hrem.y] = 1 
                 s.tdelta[hrem.x][hrem.y] = util.time() - s.tlast[hrem.x][hrem.y]
                 table.insert(s.triglist, hrem)
             end
         end
             
-        if ret then return s.v, s.tdelta, s.theld, nil, nil, lret end
+        if ret then return s.p_.v, s.theld, s.tdelta, add, nil, lret end
     end
 }
 
@@ -788,7 +803,7 @@ _grid.trigger.output.muxhandler = _obj_:new {
                     d.dirty = true
                 end)
 
-                s.v = 0
+                --if type(s.p_.v) ~= 'function' then s.p_.v = 0 end -------------------
             end)
         end
     end,
@@ -805,7 +820,7 @@ _grid.trigger.output.muxhandler = _obj_:new {
                         d.dirty = true
                     end)
                         
-                    s.v[x] = 0
+                    s.p_.v[x] = 0
                 end)
             end
         end
@@ -824,7 +839,7 @@ _grid.trigger.output.muxhandler = _obj_:new {
                             d.dirty = true
                         end)
                                 
-                        s.v[x][y] = 0
+                        s.p_.v[x][y] = 0
                     end)
                 end
             end
@@ -873,7 +888,7 @@ _grid.fill.output.muxredraw = _obj_:new {
     plane = _grid.binary.output.muxredraw.plane
 }
 
-_grid.number = _grid.muxaffordance:new { value = 1, edge = 1, fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, vlast = 1 }
+_grid.number = _grid.muxaffordance:new { v = 1, edge = 'rising', fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, vlast = 1, min = 0 }
 
 _grid.number.new = function(self, o) 
     o = _grid.muxaffordance.new(self, o)
@@ -902,27 +917,29 @@ _grid.number.input.muxhandler = _obj_:new {
     line = function(s, i, _, z) 
         --local i = x - s.p_.x[1] + 1
         local min, max = fingers(s)
+        local m = s.p_.min
+        local e = edge[s.p_.edge]
 
         if z > 0 then
             if #s.hlist == 0 then s.tdown = util.time() end
             table.insert(s.hlist, i)
            
-            if s.edge > 0 then 
-                if i ~= s.v or (not s.filtersame) then 
+            if e > 0 then 
+                if i ~= s.p_.v or (not s.filtersame) then 
                     local len = #s.hlist
                     --s.hlist = {}
                     s:replace('hlist', {})
 
                     if max == nil or len <= max then
-                        s.vlast = s.v
-                        return i, len > 1 and util.time() - s.tdown or 0, i - s.vlast, i
+                        s.vlast = s.p_.v
+                        return i+m, len > 1 and util.time() - s.tdown or 0, i+m - s.vlast, i+m
                     end
-                elseif edge == 2 then
-                    return i, 0, i - s.vlast, i
+                elseif e == 2 then
+                    return i+m, 0, i+m - s.vlast, i+m
                 end
             end
         else
-            if s.edge == 0 then
+            if e == 0 then
                 if #s.hlist >= min then
                     i = s.hlist[#s.hlist]
                     local len = #s.hlist
@@ -930,9 +947,9 @@ _grid.number.input.muxhandler = _obj_:new {
                     s:replace('hlist', {})
 
                     if max == nil or len <= max then
-                        if i ~= s.v or (not s.filtersame) then 
-                            s.vlast = s.v
-                            return i, util.time() - s.tdown, i - s.vlast
+                        if i ~= s.p_.v or (not s.filtersame) then 
+                            s.vlast = s.p_.v
+                            return i+m, util.time() - s.tdown, i - s.vlast-m
                         end
                     end
                 else
@@ -941,10 +958,10 @@ _grid.number.input.muxhandler = _obj_:new {
                         table.remove(s.hlist, k)
                     end
                 end
-            elseif s.edge == 2 then
-                --if i ~= s.v or (not s.filtersame) then 
+            elseif e == 2 then
+                --if i ~= s.p_.v or (not s.filtersame) then 
                     s:replace('hlist', {})
-                    if i ~= s.v then return i, len > 1 and util.time() - s.tdown or 0, i - s.vlast, nil, i end
+                    if i ~= s.p_.v then return i+m, len > 1 and util.time() - s.tdown or 0, i+m - s.vlast, nil, i+m end
                 --end
             end
         end
@@ -952,34 +969,37 @@ _grid.number.input.muxhandler = _obj_:new {
     plane = function(s, x, y, z) 
         --local i = { x = x - s.p_.x[1] + 1, y = y - s.p_.y[1] + 1 }
         local i = _obj_ { x = x, y = y }
+        local e = edge[s.p_.edge]
 
         local min, max = fingers(s)
+        local m = s.p_.min
+        m = type(m) ~= 'table' and { m, m } or m
 
         if z > 0 then
             if #s.hlist == 0 then s.tdown = util.time() end
             table.insert(s.hlist, i)
            
-            if s.edge > 0 then 
+            if e > 0 then 
                 local len = #s.hlist
-                if (not (i.x == s.v.x and i.y == s.v.y)) or (not s.filtersame) then 
+                if (not (i.x == s.p_.v.x and i.y == s.p_.v.y)) or (not s.filtersame) then 
                     --s.hlist = {}
                     s:replace('hlist', {})
-                    s.vlast.x = s.v.x
-                    s.vlast.y = s.v.y
-                    s.v.x = i.x
-                    s.v.y = i.y
+                    s.vlast.x = s.p_.v.x
+                    s.vlast.y = s.p_.v.y
+                    s.p_.v.x = i.x + m[1]
+                    s.p_.v.y = i.y + m[2]
 
                     if max == nil or len <= max then
-                        return s.v, len > 1 and util.time() - s.tdown or 0, _obj_ { s.v.x - s.vlast.x, s.v.y - s.vlast.y }, i
+                        return s.p_.v, len > 1 and util.time() - s.tdown or 0, _obj_ { s.p_.v.x - s.vlast.x, s.p_.v.y - s.vlast.y }, i
                     end
-                elseif s.edge == 2 then
+                elseif e == 2 then
                     if max == nil or len <= max then
-                        return s.v, 0, _obj_ { s.v.x - s.vlast.x, s.v.y - s.vlast.y }, i
+                        return s.p_.v, 0, _obj_ { s.p_.v.x - s.vlast.x, s.p_.v.y - s.vlast.y }, i
                     end
                 end
             end
         else
-            if s.edge == 0 then
+            if e == 0 then
                 if #s.hlist >= min then
                     --i = s.hlist[#s.hlist] or i
                     local len = #s.hlist
@@ -987,12 +1007,12 @@ _grid.number.input.muxhandler = _obj_:new {
                     s:replace('hlist', {})
 
                     if max == nil or len <= max then
-                        if (not (i.x == s.v.x and i.y == s.v.y)) or (not s.filtersame) then 
-                            s.vlast.x = s.v.x
-                            s.vlast.y = s.v.y
-                            s.v.x = i.x
-                            s.v.y = i.y
-                            return i, util.time() - s.tdown, _obj_ { s.v.x - s.vlast.x, s.v.y - s.vlast.y }
+                        if (not (i.x == s.p_.v.x and i.y == s.p_.v.y)) or (not s.filtersame) then 
+                            s.vlast.x = s.p_.v.x
+                            s.vlast.y = s.p_.v.y
+                            s.p_.v.x = i.x + m[1]
+                            s.p_.v.y = i.y + m[2]
+                            return s.p_.v, util.time() - s.tdown, _obj_ { s.p_.v.x - s.vlast.x, s.p_.v.y - s.vlast.y }
                         end
                     end
                 else
@@ -1002,10 +1022,10 @@ _grid.number.input.muxhandler = _obj_:new {
                         end
                     end
                 end
-            elseif s.edge == 2 then
+            elseif e == 2 then
                 s:replace('hlist', {})
-                if (i.x == s.v.x and i.y == s.v.y) then
-                    return s.v, util.time() - s.tdown, _obj_ { s.v.x - s.vlast.x, s.v.y - s.vlast.y }, nil, i
+                if (i.x == s.p_.v.x and i.y == s.p_.v.y) then
+                    return s.p_.v, util.time() - s.tdown, _obj_ { s.p_.v.x - s.vlast.x, s.p_.v.y - s.vlast.y }, nil, i
                 end
             end
         end
@@ -1019,21 +1039,23 @@ _grid.number.output.muxredraw = _obj_:new {
     end,
     line_x = function(s, g, v)
         for i = s.p_.x[1], s.p_.x[2] do
-            local lvl = lvl(s, (s.v == i - s.p_.x[1] + 1) and 1 or 0, i - s.p_.x[1] + 1)
-            if lvl > 0 then g:led(i, s.p_.y, lvl) end
+            local lvl = lvl(s, (s.p_.v == i - s.p_.x[1] + 1) and 1 or 0, i - s.p_.x[1] + 1)
+            if lvl > 0 then g:led(i-s.p_.min, s.p_.y, lvl) end
         end
     end,
     line_y = function(s, g, v)
         for i = s.p_.y[1], s.p_.y[2] do
-            local lvl = lvl(s, (s.v == s.p_.y[2] - i + 1) and 1 or 0, s.p_.y[2] - i + 1)
-            if lvl > 0 then g:led(s.p_.x, i, lvl) end
+            local lvl = lvl(s, (s.p_.v == s.p_.y[2] - i + 1) and 1 or 0, s.p_.y[2] - i + 1)
+            if lvl > 0 then g:led(s.p_.x, i-s.p_.min, lvl) end
         end
     end,
     plane = function(s, g, v)
+        local m = s.p_.min
+        m = type(m) ~= 'table' and { m, m } or m
         for i = s.p_.x[1], s.p_.x[2] do
             for j = s.p_.y[1], s.p_.y[2] do
                 local li, lj = i - s.p_.x[1] + 1, s.p_.y[2] - j + 1
-                local l = lvl(s, ((s.v.x == li) and (s.v.y == lj)) and 1 or 0, li, lj)
+                local l = lvl(s, ((s.p_.v.x+m[1] == li) and (s.p_.v.y+m[2] == lj)) and 1 or 0, li, lj)
                 if l > 0 then g:led(i, j, l) end
             end
         end
@@ -1041,7 +1063,7 @@ _grid.number.output.muxredraw = _obj_:new {
 }
 
 _grid.control = _grid.number:new { 
-    range = { 0, 1 }, 
+    min = 0, max = 1,
     lvl = { 0, 4, 15 },
     step = 0, --0.01,
     v = 0,
@@ -1063,7 +1085,7 @@ _grid.control.new = function(self, o)
     if axis.x and axis.y then o.vlast = type(o.vlast) == 'table' and o.vlast or { x = 0, y = 0 } end
     local default = type(o.v) == 'table' and o.v[1] or o.v
 
-    o.controlspec = cs or controlspec.new(o.p_.range[1], o.p_.range[2], o.p_.warp, o.p_.step, default, o.p_.units, o.p_.quantum, o.p_.wrap)
+    o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, default, o.p_.units, o.p_.quantum, o.p_.wrap)
 
     return o
 end
@@ -1079,7 +1101,7 @@ _grid.control.input.muxhandler = _obj_:new {
             local vv = (v - 1) / (r[2] - r[1])
 
             local c = s.p_.controlspec:map(vv)
-            if s.v ~= c then
+            if s.p_.v ~= c then
                 return c, t, d
             end
         end
@@ -1093,13 +1115,13 @@ _grid.control.input.muxhandler = _obj_:new {
                 local vv = (v[k] - 1) / (r[2] - r[1])
 
                 local c = s.p_.controlspec:map(vv)
-                if s.v[k] ~= c then
+                if s.p_.v[k] ~= c then
                     ret = true
-                    s.v[k] = c
+                    s.p_.v[k] = c
                 end
             end
 
-            if ret then return s.v, t, d end
+            if ret then return s.p_.v, t, d end
         end
     end
 }
@@ -1161,7 +1183,7 @@ _grid.control.output.muxredraw = _obj_:new {
     end
 }
 
-_grid.range = _grid.muxaffordance:new { edge = 1, fingers = { 2, 2 }, tdown = 0, count = { 1, 1 }, v = { 0, 0 } }
+_grid.range = _grid.muxaffordance:new { edge = 'rising', fingers = { 2, 2 }, tdown = 0, count = { 1, 1 }, v = { 0, 0 } }
 
 _grid.range.new = function(self, o) 
     o = _grid.muxaffordance.new(self, o)
@@ -1188,13 +1210,14 @@ _grid.range.input.muxhandler = _obj_:new {
         if z > 0 then return 0 end
     end,
     line = function(s, i, _, z) 
+        local e = edge[s.p_.edge]
         --local i = x - s.p_.x[1]
 
         if z > 0 then
             if #s.hlist == 0 then s.tdown = util.time() end
             table.insert(s.hlist, i)
            
-            if s.edge == 1 then 
+            if e == 1 then 
                 if #s.hlist >= 2 then 
                     local v = _obj_ { s.hlist[1], s.hlist[#s.hlist] }
                     table.sort(v)
@@ -1205,7 +1228,7 @@ _grid.range.input.muxhandler = _obj_:new {
             end
         else
             if #s.hlist >= 2 then 
-                if s.edge == 0 then
+                if e == 0 then
                     local v = _obj_ { s.hlist[1], s.hlist[#s.hlist] }
                     table.sort(v)
                     --s.hlist = {}
@@ -1223,12 +1246,13 @@ _grid.range.input.muxhandler = _obj_:new {
     plane = function(s, x, y, z) 
         --local i = { x = x - s.p_.x[1], y = y - s.p_.y[1] }
         i = { x = x, y = y }
+        local e = edge[s.p_.edge]
 
         if z > 0 then
             if #s.hlist == 0 then s.tdown = util.time() end
             table.insert(s.hlist, i)
            
-            if s.edge == 1 then 
+            if e == 1 then 
                 if #s.hlist >= 2 then 
                     local v = _obj_ { s.hlist[1], s.hlist[#s.hlist] }
                     table.sort(v, function(a, b) 
@@ -1241,7 +1265,7 @@ _grid.range.input.muxhandler = _obj_:new {
             end
         else
             if #s.hlist >= 2 then 
-                if s.edge == 0 then
+                if e == 0 then
                     local v = _obj_ { s.hlist[1], s.hlist[#s.hlist] }
                     table.sort(v, function(a, b) 
                         return a.x < b.x
@@ -1318,7 +1342,7 @@ _grid.pattern = _grid.toggle:new {
             end
         end,
     },
-    edge = 0,
+    edge = 'falling',
     include = function(s, x, y) --limit range based on pattern clear state
         local p
         if x and y then p = s[x][y]
@@ -1490,7 +1514,7 @@ _grid.preset = _grid.number:new {
         else return { 0, 15 } end
     end,
     action = function(s, v, t, delta)
-        if type(s.v) == 'table' then 
+        if type(s.p_.v) == 'table' then 
             if s[1].state[v.x][v.y] then s[1]:recall(v.x, v.y)
             else s[1]:store(v.x, v.y) end
         else 
@@ -1514,10 +1538,10 @@ function _grid.preset:init()
             self[1].state[x] = nest_:new()
         end
 
-        self[1]:store(self.v.x, self.v.y)
+        self[1]:store(self.p_.v.x, self.p_.v.y)
     else
         print 'store init'
-        self[1]:store(self.v)
+        self[1]:store(self.p_.v)
     end
 end
 --]]
@@ -1525,8 +1549,8 @@ end
 _grid.preset[1] = _preset:new {
     pass = function(self, sender, v)
         local st
-        if type(self.v) == 'table' then st = self.state[self.v.x][self.v.y]
-        else st = self.state[self.v] end
+        if type(self.p_.v) == 'table' then st = self.state[self.p_.v.x][self.p_.v.y]
+        else st = self.state[self.p_.v] end
 
         if st then
             local o = nest_.find(st, sender:path(self.p.p_.target or self.p_.target))
@@ -1536,5 +1560,80 @@ _grid.preset[1] = _preset:new {
         end
     end
 }
-    
+
+-------------------------------------BINDERS----------------------------------------------
+
+local pt = { separator = 0, number = 1, option = 2, control = 3, file = 4, taper = 5, trigger = 6, group = 7, text = 8, binary = 9 }
+local tp = tab.invert(pt)
+local err = function(t) print(t .. '.param: cannot bind to param of type '..tp[p.t]) end
+local gp = function(id) 
+    local p = params:lookup_param(id)
+    if p then return p
+    else print('_affordance.param: no param with id "'..id..'"') end
+end
+local lnk = function(s, id, t, o)
+    if type(s.v) == 'table' then
+        print(t .. '.param: value cannot be a table')
+    else
+        o.label = o.label or s.label or gp(id).name or id
+        o.value = function() return params:get(id) end
+        o.action = function(s, v) params:set(id, v) end
+        s:merge(o)
+    end
+end
+
+_grid.control.param = function(s, id)
+    local p,t = gp(id), '_grid.control'
+
+    if p.t == pt.control then
+        lnk(s, id, t, {
+            controlspec = p.controlspec,
+        })
+    else err(t) end; return s
+end
+_grid.number.param = function(s, id)
+    local p,t = gp(id), '_enc.option'
+
+    if p.t == pt.option then
+        lnk(s, id, t, {})
+    elseif p.t == pt.number then
+        lnk(s, id, t, {
+            min = p.min, max = p.max
+        })
+    else err(t) end; return s
+end
+_grid.toggle.param = = function(s, id)
+    local p,t = gp(id), '_grid.toggle'
+
+    if p.t == pt.binary then
+        lnk(s, id, t, {})
+    elseif p.t == pt.option then
+        if type(s.v) == 'table' then
+            print(t .. '.param: value cannot be a table')
+        else
+            o.value = function() return params:get(id) - 1 end
+            o.action = function(s, v) params:set(id, v + 1) end
+        end
+    else err(t) end; return s
+end
+_grid.momentary.param = function(s, id)
+    local p = gp(id)
+
+    if p.t == pt.binary then
+        lnk(s, id, '_grid.momentary', {})
+    else err(t) end; return s
+end
+_grid.trigger.param = function(s, id)
+    local p,t = gp(id), '_grid.trigger'
+
+    if p.t == pt.binary then
+        if type(s.v) == 'table' then
+            print(t .. '.param: value cannot be a table')
+        else
+            --o.label = (s.label ~= nil) and s.label or gp(id).name or id
+            s.action = function(s, v) params:delta(id) end
+        end
+    else err(t) end; return s
+end
+
 return _grid

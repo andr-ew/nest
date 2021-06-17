@@ -100,7 +100,7 @@ end
 
 _arc.affordance = _arc.fill:new {
     v = 0,
-    range = { 0, 1 },
+    min = 0, max = 1,
     sens = 1,
     wrap = false,
     input = _input:new()
@@ -119,8 +119,8 @@ _arc.number = _arc.affordance:new {
 }
 
 _arc.number.input.handler = function(self, n, d)
-    local value = self.value
-    local range = self.p_.range
+    local value = self.p_.value
+    local range = { self.p_.min, self.p_.max }
 
     local v = value + (d * self.inc)
 
@@ -168,7 +168,7 @@ _arc.control = _arc.affordance:new {
     x = { 42, 24 },
     lvl = { 0, 4, 15 },
     controlspec = nil,
-    range = { 0, 1 },
+    min = 0, max = 1,
     step = 0, --0.01,
     units = '',
     quantum = 0.01,
@@ -181,13 +181,13 @@ _arc.control.copy = function(self, o)
 
     o = _arc.affordance.copy(self, o)
 
-    o.controlspec = cs or controlspec.new(o.p_.range[1], o.p_.range[2], o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
+    o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
 
     return o
 end
 
 _arc.control.input.handler = function(self, n, d)
-    local value = self.controlspec:unmap(self.v) + (d * self.controlspec.quantum)
+    local value = self.controlspec:unmap(self.p_.v) + (d * self.controlspec.quantum)
 
     if self.p_.controlspec.wrap then
         while value > 1 do
@@ -199,7 +199,7 @@ _arc.control.input.handler = function(self, n, d)
     end
     
     local c = self.p_.controlspec:map(util.clamp(value, 0, 1))
-    if self.v ~= c then
+    if self.p_.v ~= c then
         return c
     end
 end
@@ -235,13 +235,13 @@ _arc.option = _arc.affordance:new {
     size = nil, -- 10, { 10, 10 20, 10 }
     include = nil,
     glyph = nil,
-    range = function(s) return { 1, s.options } end, -- { 1, 3 }, { 1, 2, 4 }
+    min = 1, max = function(s) return s.options end,
     margin = 0
 }
 
 _arc.option.input.handler = function(self, n, d)
-    local v = self.value + d
-    local range = { self.p_.range[1], self.p_.range[2] + 1 - self.p_.sens }
+    local v = self.p_.value + d
+    local range = { self.p_.min, self.p_.max + 1 - self.p_.sens }
     local include = self.p_.include
 
     if self.p_.wrap then
@@ -263,7 +263,7 @@ _arc.option.input.handler = function(self, n, d)
     end
 
     local c = util.clamp(v,range[1],range[2])
-    if self.value ~= c then
+    if self.p_.value ~= c then
         return c, math.floor(c)
     end
 end
@@ -290,7 +290,7 @@ _arc.option.output.redraw = function(s, v, a)
         local margin = s.p_.margin
         local stab = type(s.p_.size) == 'table'
         local size = s.p_.size or (count/options - s.p_.margin)
-        local range = s.p_.range
+        local range = { s.p_.min, s.p_.max }
         local include = s.p_.include
         local lvl = type(s.p_.lvl) == 'table' and s.p_.lvl or { s.p_.lvl }
         while #lvl < 3 do table.insert(lvl, 1, 0) end
@@ -350,5 +350,60 @@ _arc.key.toggle.input.handler = function(s, n, z)
         s.tdown = util.time()
     else theld = util.time() - s.tdown end
 
-    if z == s.p_.edge then return ~ s.v & 1, theld end
+    if z == s.p_.edge then return ~ s.p_.v & 1, theld end
+end
+
+-------------------------------------BINDERS----------------------------------------------
+
+local pt = { separator = 0, number = 1, option = 2, control = 3, file = 4, taper = 5, trigger = 6, group = 7, text = 8, binary = 9 }
+local tp = tab.invert(pt)
+local err = function(t) print(t .. '.param: cannot bind to param of type '..tp[p.t]) end
+local gp = function(id) 
+    local p = params:lookup_param(id)
+    if p then return p
+    else print('_affordance.param: no param with id "'..id..'"') end
+end
+local lnk = function(s, id, t, o)
+    if type(s.v) == 'table' then
+        print(t .. '.param: value cannot be a table')
+    else
+        o.label = o.label or s.label or gp(id).name or id
+        o.value = function() return params:get(id) end
+        o.action = function(s, v) params:set(id, v) end
+        s:merge(o)
+    end
+end
+
+_arc.control.param = function(s, id)
+    local p,t = gp(id), '_arc.control'
+
+    if p.t == pt.control then
+        lnk(s, id, t, {
+            controlspec = p.controlspec,
+        })
+    else err(t) end; return s
+end
+_arc.number.param = function(s, id)
+    local p,t = gp(id), '_arc.control'
+
+    if p.t == pt.control then
+        lnk(s, id, t, {
+            min = p.controlspec.min, max = p.controlspec.max,
+            cycle = s.cycle or (p.controlspec.max - p.controlspec.min)
+        })
+    else err(t) end; return s
+end
+_arc.option.param = function(s, id)
+    local p,t = gp(id), '_arc.option'
+
+    if p.t == pt.option then
+        lnk(s, id, t, {
+            options = #p.options
+        })
+    elseif p.t == pt.number then
+        lnk(s, id, t, {
+            options = p.max,
+            min = p.min, max = p.max
+        })
+    else err(t) end; return s
 end

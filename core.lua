@@ -1,5 +1,3 @@
--- _obj_ is a base object for all the types on this page that impliments concatenative prototypical inheritance. all subtypes of _obj_ have proprer copies of the tables in the prototype rather than delegated pointers, so changes to subtype members will never propogate up the tree
-
 local tab = require 'tabutil'
 
 -- add ignored keys table argument
@@ -124,6 +122,8 @@ function obj_new(self, o)
     return o
 end
 
+-- _obj_ is a base object for all the types on this page that impliments concatenative prototypical inheritance. all subtypes of _obj_ have proprer copies of the tables in the prototype rather than delegated pointers (like the exaples in Programming in Lua), so changes to subtype members will never propogate up the tree
+
 _obj_ = obj_new({})
 
 local function formattype(t, k, v)
@@ -171,24 +171,30 @@ local function nickname(k)
 end
 
 local function index_nickname(t, k) 
-    if k == 'v' then return t.value
-    elseif k == 'lvl' then return t.level
-    elseif k == 'en' then return t.enabled
+    if k == 'en' then return t.enabled
     elseif k == 'parent' then return t._.p
-    elseif k == 'key' then return t._.k
+    elseif k == 'key' then return t._.k end
+
+    if rawget(t, 'is_affordance') then
+        if k == 'v' then return t.value
+        elseif k == 'lvl' then return t.level end
     end
 end
 
 local function format_nickname(t, k, v) 
-    if k == 'v' and not rawget(t, 'value') then
-        rawset(t, 'value', v)
-        t['v'] = nil
-    elseif k == 'lvl' and not rawget(t, 'level') then
-        rawset(t, 'level', v)
-        t['lvl'] = nil
-    elseif k == 'en' and not rawget(t, 'enabled') then
+    if k == 'en' then
         rawset(t, 'enabled', v)
         t['en'] = nil
+    end
+
+    if rawget(t, 'is_affordance') then
+        if k == 'v' then
+            rawset(t, 'value', v)
+            t['v'] = nil
+        elseif k == 'lvl' then
+            rawset(t, 'level', v)
+            t['lvl'] = nil
+        end
     end
     
     return v
@@ -226,10 +232,10 @@ nest_ = {
     end,
     --init_action = function(self) self:init() end,
     each = function(self, f) 
-        for k,v in pairs(self.children) do 
+        for k,v in pairs(self) do if type(v)=='table' and v.is_nest then
             local r = f(k, v)
             if r then self:replace(k, r) end
-        end
+        end end
 
         return self 
     end,
@@ -309,11 +315,15 @@ nest_ = {
             return t
         end
     end,
-    merge = function(self, o)
+    merge = function(self, o, no_overwrite)
         for k,v in pairs(o) do
-            if self[k] and type(self[k]) == 'table' and self[k].merge then self[k]:merge(v)
+            if self[k] then
+                if type(self[k]) == 'table' and self[k].is_nest then 
+                    self[k]:merge(v, no_overwrite) 
+                elseif not no_overwrite then self[k] = v end
             else self[k] = v end
         end
+        return self
     end,
     save = function(self, n, name)
         n = n or 0
@@ -325,7 +335,9 @@ nest_ = {
             print(err)
             return
         end
-        local o = self:get(true, function(s) return s.persistent == nil or s.p_.persistent end, _obj_)
+        local o = self:get(true, function(s)
+            return (s.persistent == nil or s.p_.persistent) and type(s.v) ~= 'function' end, 
+        _obj_)
 
         file:write("return ")
         serialize(o, function(st)
@@ -375,7 +387,7 @@ function nest_:new(o, ...)
         local arg = { o, ... }
         o = {}
 
-        if type(o) == 'number' and #arg <= 2 then 
+        if type(arg[1]) == 'number' and #arg <= 2 then 
             local min = 1
             local max = 1
             
@@ -486,12 +498,12 @@ function nest_:new(o, ...)
         __newindex = function(t, k, v) o[k] = v end
     })
     
+    o = self:copy(o)
+    
     for k,v in pairs(o) do 
         formattype(o, k, v)
         format_nickname(o, k, v)
     end
-
-    o = self:copy(o)
     
     return o
 end
@@ -558,7 +570,7 @@ _output = nest_:new {
     devk = nil,
     draw = function(self, devk)
         if (self.enabled == nil or self.p_.enabled) and self.devk == devk then
-            if self.redraw then self.devs[devk].dirty = self:redraw(self.v, self.devs[devk].object) or self.devs[devk].dirty end -- refactor dirty flag set
+            if self.redraw then self.devs[devk].dirty = self:redraw(self.p_.v, self.devs[devk].object) or self.devs[devk].dirty end -- refactor dirty flag set
         end
     end
 }
@@ -588,16 +600,21 @@ function _observer:new(o)
     return o
 end
 
-local function runaction(self, aargs)
-    self.v = self.action and self.action(self, table.unpack(aargs)) or aargs[1] or self.v
+local function runaction(self, aargs, clock)
+    local isf = type(self.v) == 'function'
+    if (not isf) and (not clock) then self.v = aargs[1] end
+    local v = self.action and self.action(self, table.unpack(aargs))
+    if not isf then self.v = v or aargs[1] end
+
     self:update(true)
+    return v or aargs[1]
 end
 
 local function clockaction(self, aargs)
     if self.p_.clock then
         if type(self.clock) == 'number' then clock.cancel(self.clock) end
-        self.clock = clock.run(runaction, self, aargs)
-    else runaction(self, aargs) end
+        self.clock = clock.run(runaction, self, aargs, true)
+    else return runaction(self, aargs, false) end
 end
 
 _affordance = nest_:new {
@@ -610,7 +627,7 @@ _affordance = nest_:new {
     devk = nil,
     action = function() end,
     init = function(self)
-        if self.p_.persistent then self:update() end
+        if self.p_.persistent and not type(self.v)=='function' then self:update() end
 
         nest_.init(self)
     end,
@@ -638,12 +655,12 @@ _affordance = nest_:new {
                 end
 
                 if aargs and aargs[1] then 
-                    clockaction(self, aargs)
+                    local v = clockaction(self, aargs) or aargs[1]
                     
                     if self.observable then
                         for i,w in ipairs(ob) do
                             if w.p.id ~= self.id then 
-                                w:pass(self, self.v, hargs, aargs)
+                                w:pass(self, v, hargs, aargs)
                             end
                         end
                     end
@@ -654,12 +671,12 @@ _affordance = nest_:new {
     update = function(self, silent)
         if (not silent) and self.action then
             local defaults = self.arg_defaults or {}
-            clockaction(self, { self.v, table.unpack(defaults) })
+            clockaction(self, { self.p_.v, table.unpack(defaults) })
         else
             for i,v in ipairs(self.children) do 
                 if v.is_output and self.devs[v.devk] then 
                     self.devs[v.devk].dirty = true
-                    if v.handler then v:handler(self.v) end
+                    if v.handler then v:handler(self.p_.v) end
                 end
             end
         end
@@ -669,7 +686,7 @@ _affordance = nest_:new {
         if test == nil or test(self) then
             local t = nest_.get(self, silent, nil, typ)
 
-            t.value = type(self.value) == 'table' and self.value:new() or self.value -- watch out for value ~= _obj_ !
+            t.value = type(self.value) == 'table' and self.value:new() or self.p_.value -- watch out for value ~= _obj_ !
             if silent == false then self:update(false) end
 
             return t
@@ -682,10 +699,14 @@ _affordance = nest_:new {
             if type(t.value) == 'table' then
                 if t.value.is_obj then self.value = t.value:new()
                 else self.value = _obj_:new(t.value) end
-            else self.value = t.value end
+            elseif type(self.value) ~= 'function' then 
+                self.value = t.value 
+                self:update(silent)
+            else
+                local defaults = self.arg_defaults or {}
+                clockaction(self, { t.value, table.unpack(defaults) })
+            end
         end
-
-        self:update(silent)
     end
     --[[
     get = function(self, silent) 
