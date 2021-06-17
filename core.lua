@@ -707,6 +707,12 @@ _affordance = nest_:new {
                 clockaction(self, { t.value, table.unpack(defaults) })
             end
         end
+    end,
+    bind = function(self, o)
+        if type(o) == 'table' and o.set and o.get then
+            self.value = function() return o:get() end
+            self.action = function(s, v) o:set(v) end
+        else print '_affordance.bind: table must have "get" and "set" methods' end
     end
     --[[
     get = function(self, silent) 
