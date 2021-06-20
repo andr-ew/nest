@@ -1601,7 +1601,7 @@ _grid.number.param = function(s, id)
         })
     else err(t) end; return s
 end
-_grid.toggle.param = = function(s, id)
+_grid.toggle.param = function(s, id)
     local p,t = gp(id), '_grid.toggle'
 
     if p.t == pt.binary then
@@ -1610,8 +1610,8 @@ _grid.toggle.param = = function(s, id)
         if type(s.v) == 'table' then
             print(t .. '.param: value cannot be a table')
         else
-            o.value = function() return params:get(id) - 1 end
-            o.action = function(s, v) params:set(id, v + 1) end
+            s.value = function() return params:get(id) - 1 end
+            s.action = function(s, v) params:set(id, v + 1) end
         end
     else err(t) end; return s
 end
