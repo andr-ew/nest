@@ -855,7 +855,7 @@ _key.option.param = function(s, id)
         })
     else err(t) end; return s
 end
-_key.toggle.param = = function(s, id)
+_key.toggle.param = function(s, id)
     local p,t = gp(id), '_key.toggle'
 
     if p.t == pt.binary then

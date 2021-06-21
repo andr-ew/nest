@@ -1602,7 +1602,7 @@ _grid.number.param = function(s, id)
         })
     else err(t) end; return s
 end
-_grid.toggle.param = = function(s, id)
+_grid.toggle.param = function(s, id)
     local p,t = gp(id), '_grid.toggle'
 
     if p.t == pt.binary then
