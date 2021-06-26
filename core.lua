@@ -709,9 +709,10 @@ _affordance = nest_:new {
         end
     end,
     bind = function(self, o, ...)
+        local arg = { ... }
         if type(o) == 'table' and o.set and o.get then
-            self.value = function() return o:get(...) end
-            self.action = function(s, v) o:set(v, ...) end
+            self.value = function() return o:get(table.unpack(arg)) end
+            self.action = function(s, v) o:set(v, table.unpack(arg)) end
         else print '_affordance.bind: table must have "get" and "set" methods' end
     end
     --[[
