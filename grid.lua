@@ -172,7 +172,9 @@ _grid.binary.new = function(self, o)
     --rawset(o, 'list', {})
     local v = binaryvals(o)
 
-    if type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v) then o.v = v end
+    if type(o.v) ~= 'function' then
+        if type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v) then o.v = v end
+    end
     
     return o
 end
@@ -875,8 +877,11 @@ _grid.fill.new = function(self, o)
         v = 1
     end
 
-    if type(o.v) ~= type(v) then o.v = v
-    elseif o.v == 0 then o.v = v end
+
+    if type(o.v) ~= 'function' then
+        if type(o.v) ~= type(v) then o.v = v
+        elseif o.v == 0 then o.v = v end
+    end
 
     return o
 end
@@ -899,9 +904,11 @@ _grid.number.new = function(self, o)
 
     local _, axis = input_contained(o, { -1, -1 })
    
-    if axis.x and axis.y then o.v = type(o.v) == 'table' and o.v or { x = 1, y = 1 } end
-    if axis.x and axis.y then o.vlast = type(o.vlast) == 'table' and o.vlast or { x = 1, y = 1 } end
- 
+    if type(o.v) ~= 'function' then
+        if axis.x and axis.y then o.v = type(o.v) == 'table' and o.v or { x = 1, y = 1 } end
+        if axis.x and axis.y then o.vlast = type(o.vlast) == 'table' and o.vlast or { x = 1, y = 1 } end
+    end
+
     o.arg_defaults = {
         0,
         0
@@ -1081,9 +1088,11 @@ _grid.control.new = function(self, o)
 
     local _, axis = input_contained(o, { -1, -1 })
    
-    if axis.x and axis.y then o.v = type(o.v) == 'table' and o.v or { x = 0, y = 0 } end
+    if type(o.v) ~= 'function' then
+        if axis.x and axis.y then o.v = type(o.v) == 'table' and o.v or { x = 0, y = 0 } end
+    end
     if axis.x and axis.y then o.vlast = type(o.vlast) == 'table' and o.vlast or { x = 0, y = 0 } end
-    local default = type(o.v) == 'table' and o.v[1] or o.v
+    local default = type(o.p_.v) == 'table' and o.p_.v[1] or o.p_.v
 
     o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, default, o.p_.units, o.p_.quantum, o.p_.wrap)
 

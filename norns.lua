@@ -244,7 +244,9 @@ _enc.number.copy = function(self, o)
     o = _enc.muxaffordance.copy(self, o)
 
     local v = minit(o.p_.n)
-    if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    if type(o.v) ~= 'function' then
+        if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    end
 
     return o
 end
@@ -301,8 +303,9 @@ _enc.control.copy = function(self, o)
     o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
 
     local v = minit(o.p_.n)
-    if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
-
+    if type(o.v) ~= 'function' then
+        if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    end
     return o
 end
 
@@ -394,8 +397,10 @@ _enc.option.copy = function(self, o)
     o = _enc.muxaffordance.copy(self, o)
 
     if type(o.p_.n) == 'table' then
-        if type(o.v) ~= 'table' then
-            o.v = { x = 1, y = 1 }
+        if type(o.v) ~= 'function' then
+            if type(o.v) ~= 'table' then
+                o.v = { x = 1, y = 1 }
+            end
         end
     end
 
@@ -533,7 +538,9 @@ _key.binary.copy = function(self, o)
         o.list
     }
 
-    if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    if type(o.v) ~= 'function' then
+        if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    end
     
     return o
 end
