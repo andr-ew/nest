@@ -20,9 +20,9 @@ nest_.connect = function(self, objects, fps)
             
             devs[kk] = _dev:new {
                 object = vv,
-                redraw = function() 
-                    rd()
-                end,
+                -- redraw = function() 
+                --     rd()
+                -- end,
                 refresh = function()
                     vv:refresh()
                 end,
@@ -42,10 +42,12 @@ nest_.connect = function(self, objects, fps)
                 v.delta = devs.a.handler
 
                 arc_redraw = rd --global
+                devs[kk].redraw = function() arc_redraw() end
             else
                 v.key = devs.g.handler
 
                 grid_redraw = rd --global
+                devs[kk].redraw = function() grid_redraw() end
             end
 
         elseif k == 'm' or k == 'h' then
