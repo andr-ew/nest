@@ -676,7 +676,7 @@ _affordance = nest_:new {
             for i,v in ipairs(self.children) do 
                 if v.is_output and self.devs[v.devk] then 
                     self.devs[v.devk].dirty = true
-                    if v.handler then v:handler(self.p_.v) end
+                    if rawget(v, 'handler') then v:handler(self.p_.v) end
                 end
             end
         end
