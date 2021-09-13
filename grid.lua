@@ -924,7 +924,7 @@ _grid.number.input.muxhandler = _obj_:new {
     line = function(s, i, _, z) 
         --local i = x - s.p_.x[1] + 1
         local min, max = fingers(s)
-        local m = s.p_.min
+        local m = s.p_.min - 1
         local e = edge[s.p_.edge]
 
         if z > 0 then
@@ -981,6 +981,7 @@ _grid.number.input.muxhandler = _obj_:new {
         local min, max = fingers(s)
         local m = s.p_.min
         m = type(m) ~= 'table' and { m, m } or m
+        for i,v in ipairs(m) do m[i] = v - 1 end
 
         if z > 0 then
             if #s.hlist == 0 then s.tdown = util.time() end
@@ -1047,13 +1048,13 @@ _grid.number.output.muxredraw = _obj_:new {
     line_x = function(s, g, v)
         for i = s.p_.x[1], s.p_.x[2] do
             local lvl = lvl(s, (s.p_.v == i - s.p_.x[1] + 1) and 1 or 0, i - s.p_.x[1] + 1)
-            if lvl > 0 then g:led(i-s.p_.min, s.p_.y, lvl) end
+            if lvl > 0 then g:led(i-s.p_.min+1, s.p_.y, lvl) end
         end
     end,
     line_y = function(s, g, v)
         for i = s.p_.y[1], s.p_.y[2] do
             local lvl = lvl(s, (s.p_.v == s.p_.y[2] - i + 1) and 1 or 0, s.p_.y[2] - i + 1)
-            if lvl > 0 then g:led(s.p_.x, i-s.p_.min, lvl) end
+            if lvl > 0 then g:led(s.p_.x, i-s.p_.min+1, lvl) end
         end
     end,
     plane = function(s, g, v)
@@ -1600,7 +1601,7 @@ _grid.control.param = function(s, id)
     else err(t) end; return s
 end
 _grid.number.param = function(s, id)
-    local p,t = gp(id), '_enc.option'
+    local p,t = gp(id), '_grid.number'
 
     if p.t == pt.option then
         lnk(s, id, t, {})
