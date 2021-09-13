@@ -1108,7 +1108,7 @@ _grid.control.input.muxhandler = _obj_:new {
         local v,t,d = _grid.number.input.muxhandler.line(s, x, y, z)
         if v then
             local r = type(s.x) == 'table' and s.x or s.y
-            local vv = (v - 1) / (r[2] - r[1])
+            local vv = v / (r[2] - r[1])
 
             local c = s.p_.controlspec:map(vv)
             if s.p_.v ~= c then
