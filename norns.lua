@@ -20,9 +20,9 @@ nest_.connect = function(self, objects, fps)
             
             devs[kk] = _dev:new {
                 object = vv,
-                redraw = function() 
-                    rd()
-                end,
+                -- redraw = function() 
+                --     rd()
+                -- end,
                 refresh = function()
                     vv:refresh()
                 end,
@@ -42,10 +42,12 @@ nest_.connect = function(self, objects, fps)
                 v.delta = devs.a.handler
 
                 arc_redraw = rd --global
+                devs[kk].redraw = function() arc_redraw() end
             else
                 v.key = devs.g.handler
 
                 grid_redraw = rd --global
+                devs[kk].redraw = function() grid_redraw() end
             end
 
         elseif k == 'm' or k == 'h' then
@@ -244,7 +246,9 @@ _enc.number.copy = function(self, o)
     o = _enc.muxaffordance.copy(self, o)
 
     local v = minit(o.p_.n)
-    if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    if type(o.v) ~= 'function' then
+        if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    end
 
     return o
 end
@@ -301,8 +305,9 @@ _enc.control.copy = function(self, o)
     o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
 
     local v = minit(o.p_.n)
-    if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
-
+    if type(o.v) ~= 'function' then
+        if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    end
     return o
 end
 
@@ -394,8 +399,10 @@ _enc.option.copy = function(self, o)
     o = _enc.muxaffordance.copy(self, o)
 
     if type(o.p_.n) == 'table' then
-        if type(o.v) ~= 'table' then
-            o.v = { x = 1, y = 1 }
+        if type(o.v) ~= 'function' then
+            if type(o.v) ~= 'table' then
+                o.v = { x = 1, y = 1 }
+            end
         end
     end
 
@@ -533,7 +540,9 @@ _key.binary.copy = function(self, o)
         o.list
     }
 
-    if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    if type(o.v) ~= 'function' then
+        if type(v) == 'table' and (type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v)) then o.v = v end
+    end
     
     return o
 end
@@ -864,8 +873,8 @@ _key.toggle.param = function(s, id)
         if type(s.v) == 'table' then
             print(t .. '.param: value cannot be a table')
         else
-            o.value = function() return params:get(id) - 1 end
-            o.action = function(s, v) params:set(id, v + 1) end
+            s.value = function() return params:get(id) - 1 end
+            s.action = function(s, v) params:set(id, v + 1) end
         end
     else err(t) end; return s
 end

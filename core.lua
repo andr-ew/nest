@@ -157,7 +157,7 @@ end
 
 local function zcomp(a, b) 
     if type(a) == 'table' and type(b) == 'table' and a.z and b.z then
-        return a.z > b.z 
+        return a.z < b.z 
     else return false end
 end
 
@@ -676,7 +676,7 @@ _affordance = nest_:new {
             for i,v in ipairs(self.children) do 
                 if v.is_output and self.devs[v.devk] then 
                     self.devs[v.devk].dirty = true
-                    if v.handler then v:handler(self.p_.v) end
+                    if rawget(v, 'handler') then v:handler(self.p_.v) end
                 end
             end
         end
@@ -707,6 +707,15 @@ _affordance = nest_:new {
                 clockaction(self, { t.value, table.unpack(defaults) })
             end
         end
+    end,
+    bind = function(self, o, ...)
+        local arg = { ... }
+        if type(o) == 'table' and o.set and o.get then
+            self.value = function() return o:get(table.unpack(arg)) end
+            self.action = function(s, v) o:set(v, table.unpack(arg)) end
+        else print '_affordance.bind: table must have "get" and "set" methods' end
+
+        return self
     end
     --[[
     get = function(self, silent) 

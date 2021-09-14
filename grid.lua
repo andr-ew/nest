@@ -172,7 +172,9 @@ _grid.binary.new = function(self, o)
     --rawset(o, 'list', {})
     local v = binaryvals(o)
 
-    if type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v) then o.v = v end
+    if type(o.v) ~= 'function' then
+        if type(o.v) ~= 'table' or (type(o.v) == 'table' and #o.v ~= #v) then o.v = v end
+    end
     
     return o
 end
@@ -875,8 +877,11 @@ _grid.fill.new = function(self, o)
         v = 1
     end
 
-    if type(o.v) ~= type(v) then o.v = v
-    elseif o.v == 0 then o.v = v end
+
+    if type(o.v) ~= 'function' then
+        if type(o.v) ~= type(v) then o.v = v
+        elseif o.v == 0 then o.v = v end
+    end
 
     return o
 end
@@ -888,7 +893,7 @@ _grid.fill.output.muxredraw = _obj_:new {
     plane = _grid.binary.output.muxredraw.plane
 }
 
-_grid.number = _grid.muxaffordance:new { v = 1, edge = 'rising', fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, vlast = 1, min = 0 }
+_grid.number = _grid.muxaffordance:new { v = 1, edge = 'rising', fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, vlast = 1, min = 1, max = math.huge }
 
 _grid.number.new = function(self, o) 
     o = _grid.muxaffordance.new(self, o)
@@ -899,9 +904,11 @@ _grid.number.new = function(self, o)
 
     local _, axis = input_contained(o, { -1, -1 })
    
-    if axis.x and axis.y then o.v = type(o.v) == 'table' and o.v or { x = 1, y = 1 } end
-    if axis.x and axis.y then o.vlast = type(o.vlast) == 'table' and o.vlast or { x = 1, y = 1 } end
- 
+    if type(o.v) ~= 'function' then
+        if axis.x and axis.y then o.v = type(o.v) == 'table' and o.v or { x = 1, y = 1 } end
+        if axis.x and axis.y then o.vlast = type(o.vlast) == 'table' and o.vlast or { x = 1, y = 1 } end
+    end
+
     o.arg_defaults = {
         0,
         0
@@ -917,7 +924,7 @@ _grid.number.input.muxhandler = _obj_:new {
     line = function(s, i, _, z) 
         --local i = x - s.p_.x[1] + 1
         local min, max = fingers(s)
-        local m = s.p_.min
+        local m = s.p_.min - 1
         local e = edge[s.p_.edge]
 
         if z > 0 then
@@ -974,6 +981,7 @@ _grid.number.input.muxhandler = _obj_:new {
         local min, max = fingers(s)
         local m = s.p_.min
         m = type(m) ~= 'table' and { m, m } or m
+        for i,v in ipairs(m) do m[i] = v - 1 end
 
         if z > 0 then
             if #s.hlist == 0 then s.tdown = util.time() end
@@ -1040,13 +1048,13 @@ _grid.number.output.muxredraw = _obj_:new {
     line_x = function(s, g, v)
         for i = s.p_.x[1], s.p_.x[2] do
             local lvl = lvl(s, (s.p_.v == i - s.p_.x[1] + 1) and 1 or 0, i - s.p_.x[1] + 1)
-            if lvl > 0 then g:led(i-s.p_.min, s.p_.y, lvl) end
+            if lvl > 0 then g:led(i-s.p_.min+1, s.p_.y, lvl) end
         end
     end,
     line_y = function(s, g, v)
         for i = s.p_.y[1], s.p_.y[2] do
             local lvl = lvl(s, (s.p_.v == s.p_.y[2] - i + 1) and 1 or 0, s.p_.y[2] - i + 1)
-            if lvl > 0 then g:led(s.p_.x, i-s.p_.min, lvl) end
+            if lvl > 0 then g:led(s.p_.x, i-s.p_.min+1, lvl) end
         end
     end,
     plane = function(s, g, v)
@@ -1081,9 +1089,11 @@ _grid.control.new = function(self, o)
 
     local _, axis = input_contained(o, { -1, -1 })
    
-    if axis.x and axis.y then o.v = type(o.v) == 'table' and o.v or { x = 0, y = 0 } end
+    if type(o.v) ~= 'function' then
+        if axis.x and axis.y then o.v = type(o.v) == 'table' and o.v or { x = 0, y = 0 } end
+    end
     if axis.x and axis.y then o.vlast = type(o.vlast) == 'table' and o.vlast or { x = 0, y = 0 } end
-    local default = type(o.v) == 'table' and o.v[1] or o.v
+    local default = type(o.p_.v) == 'table' and o.p_.v[1] or o.p_.v
 
     o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, default, o.p_.units, o.p_.quantum, o.p_.wrap)
 
@@ -1098,7 +1108,7 @@ _grid.control.input.muxhandler = _obj_:new {
         local v,t,d = _grid.number.input.muxhandler.line(s, x, y, z)
         if v then
             local r = type(s.x) == 'table' and s.x or s.y
-            local vv = (v - 1) / (r[2] - r[1])
+            local vv = v / (r[2] - r[1])
 
             local c = s.p_.controlspec:map(vv)
             if s.p_.v ~= c then
@@ -1575,7 +1585,6 @@ local lnk = function(s, id, t, o)
     if type(s.v) == 'table' then
         print(t .. '.param: value cannot be a table')
     else
-        o.label = o.label or s.label or gp(id).name or id
         o.value = function() return params:get(id) end
         o.action = function(s, v) params:set(id, v) end
         s:merge(o)
@@ -1592,7 +1601,7 @@ _grid.control.param = function(s, id)
     else err(t) end; return s
 end
 _grid.number.param = function(s, id)
-    local p,t = gp(id), '_enc.option'
+    local p,t = gp(id), '_grid.number'
 
     if p.t == pt.option then
         lnk(s, id, t, {})
@@ -1611,8 +1620,8 @@ _grid.toggle.param = function(s, id)
         if type(s.v) == 'table' then
             print(t .. '.param: value cannot be a table')
         else
-            o.value = function() return params:get(id) - 1 end
-            o.action = function(s, v) params:set(id, v + 1) end
+            s.value = function() return params:get(id) - 1 end
+            s.action = function(s, v) params:set(id, v + 1) end
         end
     else err(t) end; return s
 end
