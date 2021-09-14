@@ -157,7 +157,7 @@ end
 
 local function zcomp(a, b) 
     if type(a) == 'table' and type(b) == 'table' and a.z and b.z then
-        return a.z > b.z 
+        return a.z < b.z 
     else return false end
 end
 
