@@ -270,9 +270,9 @@ _enc.number.input.muxhandler = _obj_:new {
 }
 
 local function delta_control(self, v, d)
-    local value = self.controlspec:unmap(v) + (d * self.controlspec.quantum)
+    local value = self.p_.controlspec:unmap(v) + (d * self.p_.controlspec.quantum)
 
-    if self.controlspec.wrap then
+    if self.p_.controlspec.wrap then
         while value > 1 do
             value = value - 1
         end
@@ -281,7 +281,7 @@ local function delta_control(self, v, d)
         end
     end
     
-    local c = self.controlspec:map(util.clamp(value, 0, 1))
+    local c = self.p_.controlspec:map(util.clamp(value, 0, 1))
     if v ~= c then
         return c
     end
@@ -302,7 +302,9 @@ _enc.control.copy = function(self, o)
 
     o = _enc.muxaffordance.copy(self, o)
 
-    o.controlspec = cs or controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
+    if not o.p_.controlspec then
+        o.controlspec = controlspec.new(o.p_.min, o.p_.max, o.p_.warp, o.p_.step, o.v, o.p_.units, o.p_.quantum, o.p_.wrap)
+    end
 
     local v = minit(o.p_.n)
     if type(o.v) ~= 'function' then

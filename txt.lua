@@ -584,13 +584,13 @@ _txt.enc.number = _enc.number:new()
 _txt.labelaffordance:copy(_txt.enc.number)
 
 _txt.enc.control = _enc.control:new()
-_txt.enc.control.step = function(s) return s.controlspec.step end
+_txt.enc.control.step = function(s) return s.p_.controlspec.step end
 _txt.labelaffordance:copy(_txt.enc.control)
 
 _txt.option = _txt.affordance:new()
 _txt.option.lvl = { 4, 15 }
 _txt.option.selected = function(s) return s.p_.v end
-_txt.option.output.txt = function(s) return s.options end
+_txt.option.output.txt = function(s) return s.p_.options end
 _txt.option.output.ltxt = function(s)
     if s.p_.label then 
         if type(s.p_.v) == 'table' then
