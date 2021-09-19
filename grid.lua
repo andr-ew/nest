@@ -517,7 +517,7 @@ _grid.toggle.input.muxhandler = _obj_:new {
        
         if e > 0 and hadd then i = hadd end
         if e == 0 and hrem then i = hrem end
- 
+
         if i then   
             if #s.toglist >= min then
                 local lvl = s.p_('lvl', i)
@@ -531,7 +531,6 @@ _grid.toggle.input.muxhandler = _obj_:new {
                     include
                 )
                 local low = togglelow(s, range, include)
-                print(v, low)
                 
                 if v > low then
                     add = i
@@ -551,15 +550,23 @@ _grid.toggle.input.muxhandler = _obj_:new {
                 if add then s.p_.v[add] = v end
                 if rem then s.p_.v[rem] = togglelow(s, { s.p_('min', rem), s.p_('max', rem) }, s.p_('include', rem)) end
 
-            elseif #hlist >= min then
-                for j,w in ipairs(hlist) do
-                    s.toglist[j] = w
-                    s.p_.v[w] = toggleset(s, 1, s.p_('lvl', w), { s.p_('min', w), s.p_('max', w) }, s.p_('include', w))
+            else
+                local hhlist = _obj_ {}
+                if hrem then
+                    for j, w in ipairs(hlist) do hhlist[j] = w end
+                    table.insert(hhlist, hrem)
+                else hhlist = hlist end
+
+                if #hhlist >= min then
+                    for j,w in ipairs(hhlist) do
+                        s.toglist[j] = w
+                        s.p_.v[w] = toggleset(s, 1, s.p_('lvl', w), { s.p_('min', w), s.p_('max', w) }, s.p_('include', w))
+                    end
                 end
             end
             
             if #s.toglist < min then
-                for j,w in ipairs(s.p_.v) do s.p_.v[j] = low end
+                for j,w in ipairs(s.p_.v) do s.p_.v[j] = togglelow(s, { s.p_('min', j), s.p_('max', j) }, s.p_('include', j)) end
                 --s.toglist = {}
                 s:replace('toglist', {})
             end
