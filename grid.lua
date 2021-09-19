@@ -510,6 +510,7 @@ _grid.toggle.input.muxhandler = _obj_:new {
     line = function(s, x, y, z)
         local held, theld, _, hadd, hrem, hlist = _grid.binary.input.muxhandler.line(s, x, y, z, 0, nil)
         local min, max = count(s)
+        local fmin, fmax = fingers(s)
         local i
         local add
         local rem
@@ -576,6 +577,7 @@ _grid.toggle.input.muxhandler = _obj_:new {
             return s.p_.v, theld, s.ttog, nil, nil, s.toglist
         end
     end,
+    --TODO: copy over changes in line
     plane = function(s, x, y, z)
         local held, theld, _, hadd, hrem, hlist = _grid.binary.input.muxhandler.plane(s, x, y, z, 0, nil)
         local min, max = count(s)
@@ -644,6 +646,7 @@ _grid.toggle.input.muxhandler = _obj_:new {
                 s:replace('toglist', {})
             end
 
+            --TODO: return conditionally - when e==0, only return when first held key is released
             return s.p_.v, theld, s.ttog, add, rem, s.toglist
         elseif e == 2 then
             return s.p_.v, theld, s.ttog, nil, nil, s.toglist
@@ -721,6 +724,8 @@ _grid.trigger.input.muxhandler = _obj_:new {
             ret = true
             lret = hlist
             add = hlist[#hlist]
+
+        --TODO: don't return for fingers above max limit
         elseif e == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
             --s.triglist = {}
             s:replace('triglist', {})
