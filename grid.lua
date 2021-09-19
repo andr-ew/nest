@@ -410,7 +410,7 @@ _grid.momentary.input.muxhandler = _obj_:new {
 
 local edge = { rising = 1, falling = 0, both = 2 }
 
-_grid.toggle = _grid.binary:new { edge = 'rising', min = -math.huge, max = math.huge }
+_grid.toggle = _grid.binary:new { edge = 'rising' }
 
 _grid.toggle.new = function(self, o) 
     o = _grid.binary.new(self, o)
@@ -438,7 +438,7 @@ local function toggle(s, value, lvl, range, include)
     local function delta(vvv)
         local v = (vvv + 1) % (((type(lvl) == 'table') and #lvl > 1) and (#lvl) or 2)
 
-        if range then
+        if range[1] and range[2] then
             while v > range[2] do
                 v = v - (range[2] - range[1]) - 1
             end
@@ -465,15 +465,15 @@ local function toggle(s, value, lvl, range, include)
 end
 
 local function togglelow(s, range, include)
-    if range and include then
+    if range[1] and range[2] and include then
         return math.max(range[1], include[1])
-    elseif range or include then
-        return range and range[1] or include[1]
+    elseif (range[1] and range[2]) or include then
+        return range[1] or include[1]
     else return 0 end
 end
 
 local function toggleset(s, v, lvl, range, include)      
-    if range then
+    if range[1] and range[2] then
         while v > range[2] do
             v = v - (range[2] - range[1]) - 1
         end
@@ -531,6 +531,7 @@ _grid.toggle.input.muxhandler = _obj_:new {
                     include
                 )
                 local low = togglelow(s, range, include)
+                print(v, low)
                 
                 if v > low then
                     add = i
