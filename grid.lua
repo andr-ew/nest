@@ -518,64 +518,105 @@ _grid.toggle.input.muxhandler = _obj_:new {
         if e > 0 and hadd then i = hadd end
         if e == 0 and hrem then i = hrem end
 
-        if fingers and e==0 then
-            
-        elseif i then   
-            if #s.toglist >= min then
-                local lvl = s.p_('lvl', i)
-                local range = { s.p_('min', i), s.p_('max', i) }
-                local include = s.p_('include', i)
-                local v = toggle(
-                    s, 
-                    s.p_.v[i], 
-                    lvl,
-                    range,
-                    include
-                )
-                local low = togglelow(s, range, include)
-                
-                if v > low then
-                    add = i
+        if fingers and e == 0 then
+            local fmin, fmax = fingers(s)
+
+            if hrem then
+                if #hlist+1 >= fmin and #hlist+1 <= fmax then
+                    local function tog(ii)
+                        local range = { s.p_('min', ii), s.p_('max', ii) }
+                        local include = s.p_('include', ii)
+                        local low = togglelow(s, range, include)
+
+                        s.p_.v[ii] = toggle(
+                            s, 
+                            s.p_.v[ii], 
+                            s.p_('lvl', ii),
+                            range,
+                            include
+                        ) 
+                        s.ttog[ii] = util.time() - s.tlast[ii]
+
+                        if s.p_.v[ii] > low then
+                            if not tab.contains(s.toglist, ii) then table.insert(s.toglist, ii) end
+                            if max and #s.toglist > max then rem = table.remove(s.toglist, 1) end
+                        else 
+                            rem = ii
+                            local k = tab.key(s.toglist, ii)
+                            if k then
+                                rem = table.remove(s.toglist, k)
+                            end
+                        end
+                    end
+
+                    add = hrem
+                    tog(hrem)
+                    for j,w in ipairs(hlist) do tog(w) end
                     
-                    if not tab.contains(s.toglist, i) then table.insert(s.toglist, i) end
-                    if max and #s.toglist > max then rem = table.remove(s.toglist, 1) end
-                else 
-                    rem = i
-                    local k = tab.key(s.toglist, i)
-                    if k then
-                        rem = table.remove(s.toglist, k)
-                    end
-                end
-            
-                s.ttog[i] = util.time() - s.tlast[i]
+                    s:replace('list', {})
 
-                if add then s.p_.v[add] = v end
-                if rem then s.p_.v[rem] = togglelow(s, { s.p_('min', rem), s.p_('max', rem) }, s.p_('include', rem)) end
-
-            else
-                local hhlist = _obj_ {}
-                if hrem then
-                    for j, w in ipairs(hlist) do hhlist[j] = w end
-                    table.insert(hhlist, hrem)
-                else hhlist = hlist end
-
-                if #hhlist >= min then
-                    for j,w in ipairs(hhlist) do
-                        s.toglist[j] = w
-                        s.p_.v[w] = toggleset(s, 1, s.p_('lvl', w), { s.p_('min', w), s.p_('max', w) }, s.p_('include', w))
-                    end
+                    return s.p_.v, theld, s.ttog, add, rem, s.toglist
+                else
+                    s:replace('list', {})
                 end
             end
-            
-            if #s.toglist < min then
-                for j,w in ipairs(s.p_.v) do s.p_.v[j] = togglelow(s, { s.p_('min', j), s.p_('max', j) }, s.p_('include', j)) end
-                --s.toglist = {}
-                s:replace('toglist', {})
-            end
+        else
+            if i then   
+                if #s.toglist >= min then
+                    local range = { s.p_('min', i), s.p_('max', i) }
+                    local include = s.p_('include', i)
+                    local v = toggle(
+                        s, 
+                        s.p_.v[i], 
+                        lvl,
+                        range,
+                        include
+                    )
+                    local low = togglelow(s, range, include)
+                    
+                    if v > low then
+                        add = i
+                        
+                        if not tab.contains(s.toglist, i) then table.insert(s.toglist, i) end
+                        if max and #s.toglist > max then rem = table.remove(s.toglist, 1) end
+                    else 
+                        rem = i
+                        local k = tab.key(s.toglist, i)
+                        if k then
+                            rem = table.remove(s.toglist, k)
+                        end
+                    end
+                
+                    s.ttog[i] = util.time() - s.tlast[i]
 
-            return s.p_.v, theld, s.ttog, add, rem, s.toglist
-        elseif e == 2 then
-            return s.p_.v, theld, s.ttog, nil, nil, s.toglist
+                    if add then s.p_.v[add] = v end
+                    if rem then s.p_.v[rem] = togglelow(s, { s.p_('min', rem), s.p_('max', rem) }, s.p_('include', rem)) end
+
+                else
+                    local hhlist = _obj_ {}
+                    if hrem then
+                        for j, w in ipairs(hlist) do hhlist[j] = w end
+                        table.insert(hhlist, hrem)
+                    else hhlist = hlist end
+
+                    if #hhlist >= min then
+                        for j,w in ipairs(hhlist) do
+                            s.toglist[j] = w
+                            s.p_.v[w] = toggleset(s, 1, s.p_('lvl', w), { s.p_('min', w), s.p_('max', w) }, s.p_('include', w))
+                        end
+                    end
+                end
+                
+                if #s.toglist < min then
+                    for j,w in ipairs(s.p_.v) do s.p_.v[j] = togglelow(s, { s.p_('min', j), s.p_('max', j) }, s.p_('include', j)) end
+                    --s.toglist = {}
+                    s:replace('toglist', {})
+                end
+
+                return s.p_.v, theld, s.ttog, add, rem, s.toglist
+            elseif e == 2 then
+                return s.p_.v, theld, s.ttog, nil, nil, s.toglist
+            end
         end
     end,
     --TODO: copy over changes in line
@@ -711,19 +752,12 @@ _grid.trigger.input.muxhandler = _obj_:new {
 
         if fingers and e == 0 then
             local fmin, fmax = fingers(s)
+            fmin = math.max(fmin, min)
 
             if hrem then
                 if #hlist+1 >= fmin and #hlist+1 <= fmax then
                     s:replace('triglist', {})
 
-                    for i,w in ipairs(hlist) do 
-                        if s.p_.v[w] <= 0 then
-                            s.p_.v[w] = 1
-                            s.tdelta[w] = util.time() - s.tlast[w]
-                            table.insert(s.triglist, w)
-                        end
-                    end
-                    
                     if s.p_.v[hrem] <= 0 then
                         add = hrem
                         s.p_.v[hrem] = 1 
@@ -731,6 +765,16 @@ _grid.trigger.input.muxhandler = _obj_:new {
                         table.insert(s.triglist, hrem)
                     end
 
+                    --this is gonna kinda remove indicies randomly when getting over max
+                    --oh well
+                    for i,w in ipairs(hlist) do if max and (i+1 <= max) then
+                        if s.p_.v[w] <= 0 then
+                            s.p_.v[w] = 1
+                            s.tdelta[w] = util.time() - s.tlast[w]
+                            table.insert(s.triglist, w)
+                        end
+                    end end
+                    
                     s:replace('list', {})
 
                     return s.p_.v, s.theld, s.tdelta, add, nil, s.triglist
@@ -782,6 +826,7 @@ _grid.trigger.input.muxhandler = _obj_:new {
             if ret then return s.p_.v, s.theld, s.tdelta, add, nil, lret end
         end
     end,
+    --TODO: copy new changes from line
     plane = function(s, x, y, z)
         local max
         local min, max = count(s)
