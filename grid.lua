@@ -204,7 +204,7 @@ _grid.binary.input.muxhandler = _obj_:new {
             table.insert(s.list, i)
             if wrap and #s.list > wrap then rem = table.remove(s.list, 1) end
         else
-            rem = i
+            -- rem = i ----- negative concequences  ?
             local k = tab.key(s.list, i)
             if k then
                 rem = table.remove(s.list, k)
@@ -510,7 +510,6 @@ _grid.toggle.input.muxhandler = _obj_:new {
     line = function(s, x, y, z)
         local held, theld, _, hadd, hrem, hlist = _grid.binary.input.muxhandler.line(s, x, y, z, 0, nil)
         local min, max = count(s)
-        local fmin, fmax = fingers(s)
         local i
         local add
         local rem
@@ -519,7 +518,9 @@ _grid.toggle.input.muxhandler = _obj_:new {
         if e > 0 and hadd then i = hadd end
         if e == 0 and hrem then i = hrem end
 
-        if i then   
+        if fingers and e==0 then
+            
+        elseif i then   
             if #s.toglist >= min then
                 local lvl = s.p_('lvl', i)
                 local range = { s.p_('min', i), s.p_('max', i) }
@@ -646,7 +647,6 @@ _grid.toggle.input.muxhandler = _obj_:new {
                 s:replace('toglist', {})
             end
 
-            --TODO: return conditionally - when e==0, only return when first held key is released
             return s.p_.v, theld, s.ttog, add, rem, s.toglist
         elseif e == 2 then
             return s.p_.v, theld, s.ttog, nil, nil, s.toglist
@@ -687,6 +687,12 @@ _grid.trigger.new = function(self, o)
     return o
 end
 
+--TODO:
+--  as-is, fingers is currently only implimented for number - for other affordances, fingers fills in for count which is incorrect
+--  to impliment count for trigger & toggle, i propose writing a separate roktine when fingers is present, only available for falling edges
+--
+--  this routine checks the finger count only when the first finger is removed (including the removed key). if the count is correct then pass the hlist to v & list. 
+--  to prevent action on the next key ups, just clear out hlist. hrem is only sent if its in hlist
 _grid.trigger.input.muxhandler = _obj_:new {
     point = function(s, x, y, z)
         local held = _grid.binary.input.muxhandler.point(s, x, y, z)
@@ -697,62 +703,88 @@ _grid.trigger.input.muxhandler = _obj_:new {
         end
     end,
     line = function(s, x, y, z)
-        local max
-        local min, wrap = count(s)
-        if s.fingers then
-            min, max = fingers(s)
-        end        
+        local min, max = count(s)
         local held, theld, _, hadd, hrem, hlist = _grid.binary.input.muxhandler.line(s, x, y, z, 0, nil)
         local ret = false
         local lret, add
         local e = edge[s.p_.edge]
 
-        if e == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
-            s.p_.v[hadd] = 1
-            s.tdelta[hadd] = util.time() - s.tlast[hadd]
+        if fingers and e == 0 then
+            local fmin, fmax = fingers(s)
 
-            ret = true
-            add = hadd
-            lret = hlist
-        elseif e == 1 and #hlist == min and hadd then
-            for i,w in ipairs(hlist) do 
-                s.p_.v[w] = 1
+            if hrem then
+                if #hlist+1 >= fmin and #hlist+1 <= fmax then
+                    s:replace('triglist', {})
 
-                s.tdelta[w] = util.time() - s.tlast[w]
-            end
+                    for i,w in ipairs(hlist) do 
+                        if s.p_.v[w] <= 0 then
+                            s.p_.v[w] = 1
+                            s.tdelta[w] = util.time() - s.tlast[w]
+                            table.insert(s.triglist, w)
+                        end
+                    end
+                    
+                    if s.p_.v[hrem] <= 0 then
+                        add = hrem
+                        s.p_.v[hrem] = 1 
+                        s.tdelta[hrem] = util.time() - s.tlast[hrem]
+                        table.insert(s.triglist, hrem)
+                    end
 
-            ret = true
-            lret = hlist
-            add = hlist[#hlist]
+                    s:replace('list', {})
 
-        --TODO: don't return for fingers above max limit
-        elseif e == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
-            --s.triglist = {}
-            s:replace('triglist', {})
-
-            for i,w in ipairs(hlist) do 
-                if s.p_.v[w] <= 0 then
-                    s.p_.v[w] = 1
-                    s.tdelta[w] = util.time() - s.tlast[w]
-                    table.insert(s.triglist, w)
+                    return s.p_.v, s.theld, s.tdelta, add, nil, s.triglist
+                else
+                    s:replace('list', {})
                 end
             end
-            
-            if s.p_.v[hrem] <= 0 then
+        else
+            if e == 1 and #hlist > min and (max == nil or #hlist <= max) and hadd then
+                s.p_.v[hadd] = 1
+                s.tdelta[hadd] = util.time() - s.tlast[hadd]
+
                 ret = true
-                lret = s.triglist
-                add = hrem
-                s.p_.v[hrem] = 1 
-                s.tdelta[hrem] = util.time() - s.tlast[hrem]
-                table.insert(s.triglist, hrem)
+                add = hadd
+                lret = hlist
+            elseif e == 1 and #hlist == min and hadd then
+                for i,w in ipairs(hlist) do 
+                    s.p_.v[w] = 1
+
+                    s.tdelta[w] = util.time() - s.tlast[w]
+                end
+
+                ret = true
+                lret = hlist
+                add = hlist[#hlist]
+
+            elseif e == 0 and #hlist >= min - 1 and (max == nil or #hlist <= max - 1)and hrem and not hadd then
+                --s.triglist = {}
+                s:replace('triglist', {})
+
+                for i,w in ipairs(hlist) do 
+                    if s.p_.v[w] <= 0 then
+                        s.p_.v[w] = 1
+                        s.tdelta[w] = util.time() - s.tlast[w]
+                        table.insert(s.triglist, w)
+                    end
+                end
+                
+                if s.p_.v[hrem] <= 0 then
+                    ret = true
+                    lret = s.triglist
+                    add = hrem
+                    s.p_.v[hrem] = 1 
+                    s.tdelta[hrem] = util.time() - s.tlast[hrem]
+                    table.insert(s.triglist, hrem)
+                end
             end
+                
+            if ret then return s.p_.v, s.theld, s.tdelta, add, nil, lret end
         end
-            
-        if ret then return s.p_.v, s.theld, s.tdelta, add, nil, lret end
     end,
     plane = function(s, x, y, z)
         local max
-        local min, wrap = count(s)
+        local min, max = count(s)
         if s.fingers then
             min, max = fingers(s)
         end        
