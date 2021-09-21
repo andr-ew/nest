@@ -728,12 +728,6 @@ _grid.trigger.new = function(self, o)
     return o
 end
 
---TODO:
---  as-is, fingers is currently only implimented for number - for other affordances, fingers fills in for count which is incorrect
---  to impliment count for trigger & toggle, i propose writing a separate roktine when fingers is present, only available for falling edges
---
---  this routine checks the finger count only when the first finger is removed (including the removed key). if the count is correct then pass the hlist to v & list. 
---  to prevent action on the next key ups, just clear out hlist. hrem is only sent if its in hlist
 _grid.trigger.input.muxhandler = _obj_:new {
     point = function(s, x, y, z)
         local held = _grid.binary.input.muxhandler.point(s, x, y, z)
@@ -983,6 +977,10 @@ _grid.fill.output.muxredraw = _obj_:new {
     plane = _grid.binary.output.muxredraw.plane
 }
 
+--TODO: wrap
+--  impliment output side (easy part)
+--  override _grid.number.input.filter with an expanded input_contained
+
 _grid.number = _grid.muxaffordance:new { v = 1, edge = 'rising', fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, vlast = 1, min = 1, max = math.huge }
 
 _grid.number.new = function(self, o) 
@@ -1136,9 +1134,14 @@ _grid.number.output.muxredraw = _obj_:new {
         if lvl > 0 then g:led(s.p_.x, s.p_.y, lvl) end
     end,
     line_x = function(s, g, v)
-        for i = s.p_.x[1], s.p_.x[2] do
-            local lvl = lvl(s, (s.p_.v == i - s.p_.x[1] + 1) and 1 or 0, i - s.p_.x[1] + 1)
-            if lvl > 0 then g:led(i-s.p_.min+1, s.p_.y, lvl) end
+        for i = 1, s.p_.x[2] - s.p_.x[1] + s.p_.min do
+            local lvl = lvl(s, s.p_.v == i and 1 or 0, i)
+            local x,y,w = i, 1, s.p_.wrap
+            if s.p_.wrap then
+                x = (i-1)%w + 1
+                y = (i-1)//w + 1
+            end
+            if lvl > 0 then g:led(x + s.p_.x[1]-s.p_.min, y + s.p_.y - 1, lvl) end
         end
     end,
     line_y = function(s, g, v)
