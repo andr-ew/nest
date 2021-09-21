@@ -1005,6 +1005,46 @@ _grid.number.new = function(self, o)
     return o
 end
 
+local input_contained_wrap = function(s, inargs, axis_size)
+    local w, x, y = s.p_.wrap, inargs[1], inargs[2]
+    if axis_size.x then
+        for i = 1, axis_size.x do
+            local maj = (i-1)%w + 1
+            local min = (i-1)//w + 1
+
+            if maj + s.p_.x[1] - 1 == x and min + s.p_.y - 1 == y then return true, i end
+        end
+    else
+        --TODO: modified logic for vertical affordance
+    end
+end
+
+_grid.number.input.filter = function(s, args)
+    local contained, axis_size = input_contained(s, args)
+    --TODO: check for gaps
+
+    if (s.p_.wrap~=nil) and ((axis_size.x == nil) ~= (axis_size.y == nil)) then
+        local cont, i = input_contained_wrap(s, args, axis_size)
+        
+        --TODO: check for gaps
+        if cont then return { "line", i, nil, args[3] } else return end
+    end
+
+    if contained then
+        if axis_size.x == nil and axis_size.y == nil then
+            return { "point", nil, nil, args[3] }
+        elseif axis_size.x ~= nil and axis_size.y ~= nil then
+            return { "plane", args[1] - s.p_.x[1] + 1, s.p_.y[2] - args[2] + 1, args[3] }
+        else
+            if axis_size.x ~= nil then
+                return { "line", args[1] - s.p_.x[1] + 1, nil, args[3] }
+            elseif axis_size.y ~= nil then
+                return { "line", s.p_.y[2] - args[2] + 1, nil, args[3] }
+            end
+        end
+    else return nil end
+end
+
 _grid.number.input.muxhandler = _obj_:new {
     point = function(s, x, y, z) 
         if z > 0 then return 0 end
