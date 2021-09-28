@@ -977,10 +977,6 @@ _grid.fill.output.muxredraw = _obj_:new {
     plane = _grid.binary.output.muxredraw.plane
 }
 
---TODO: wrap
---  impliment output side (easy part)
---  override _grid.number.input.filter with an expanded input_contained
-
 _grid.number = _grid.muxaffordance:new { v = 1, edge = 'rising', fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, vlast = 1, min = 1, max = math.huge }
 
 _grid.number.new = function(self, o) 
@@ -1021,12 +1017,10 @@ end
 
 _grid.number.input.filter = function(s, args)
     local contained, axis_size = input_contained(s, args)
-    --TODO: check for gaps
 
     if (s.p_.wrap~=nil) and ((axis_size.x == nil) ~= (axis_size.y == nil)) then
         local cont, i = input_contained_wrap(s, args, axis_size)
         
-        --TODO: check for gaps
         if cont then return { "line", i, nil, args[3] } else return end
     end
 
@@ -1060,7 +1054,7 @@ _grid.number.input.muxhandler = _obj_:new {
             table.insert(s.hlist, i)
            
             if e > 0 then 
-                if i ~= s.p_.v or (not s.filtersame) then 
+                if (i+m) ~= s.p_.v or (not s.filtersame) then 
                     local len = #s.hlist
                     --s.hlist = {}
                     s:replace('hlist', {})
@@ -1082,7 +1076,7 @@ _grid.number.input.muxhandler = _obj_:new {
                     s:replace('hlist', {})
 
                     if max == nil or len <= max then
-                        if i ~= s.p_.v or (not s.filtersame) then 
+                        if (i+m) ~= s.p_.v or (not s.filtersame) then 
                             s.vlast = s.p_.v
                             return i+m, util.time() - s.tdown, i - s.vlast-m
                         end
@@ -1117,7 +1111,10 @@ _grid.number.input.muxhandler = _obj_:new {
            
             if e > 0 then 
                 local len = #s.hlist
-                if (not (i.x == s.p_.v.x and i.y == s.p_.v.y)) or (not s.filtersame) then 
+                if (
+                    not ((i.x+m[1]) == s.p_.v.x and (i.y+m[2]) == s.p_.v.y)
+                    ) or (not s.filtersame) 
+                then 
                     --s.hlist = {}
                     s:replace('hlist', {})
                     s.vlast.x = s.p_.v.x
@@ -1143,7 +1140,10 @@ _grid.number.input.muxhandler = _obj_:new {
                     s:replace('hlist', {})
 
                     if max == nil or len <= max then
-                        if (not (i.x == s.p_.v.x and i.y == s.p_.v.y)) or (not s.filtersame) then 
+                        if (
+                            not ((i.x+m[1]) == s.p_.v.x and (i.y+m[2]) == s.p_.v.y)
+                            ) or (not s.filtersame) 
+                        then 
                             s.vlast.x = s.p_.v.x
                             s.vlast.y = s.p_.v.y
                             s.p_.v.x = i.x + m[1]
@@ -1174,20 +1174,21 @@ _grid.number.output.muxredraw = _obj_:new {
         if lvl > 0 then g:led(s.p_.x, s.p_.y, lvl) end
     end,
     line_x = function(s, g, v)
-        for i = 1, s.p_.x[2] - s.p_.x[1] + s.p_.min do
-            local lvl = lvl(s, s.p_.v == i and 1 or 0, i)
+        for i = 1, s.p_.x[2] - s.p_.x[1] + 1 do
+            local lvl = lvl(s, s.p_.v - s.p_.min + 1 == i and 1 or 0, i)
             local x,y,w = i, 1, s.p_.wrap
             if s.p_.wrap then
                 x = (i-1)%w + 1
                 y = (i-1)//w + 1
             end
-            if lvl > 0 then g:led(x + s.p_.x[1]-s.p_.min, y + s.p_.y - 1, lvl) end
+            if lvl > 0 then g:led(x + s.p_.x[1] - 1, y + s.p_.y - 1, lvl) end
         end
     end,
+    --TODO: wrap
     line_y = function(s, g, v)
-        for i = s.p_.y[1], s.p_.y[2] do
-            local lvl = lvl(s, (s.p_.v == s.p_.y[2] - i + 1) and 1 or 0, s.p_.y[2] - i + 1)
-            if lvl > 0 then g:led(s.p_.x, i-s.p_.min+1, lvl) end
+        for i = 1, s.p_.y[2] - s.p_.y[1] + 1 do
+            local lvl = lvl(s, (s.p_.v - s.p_.min + 1 == s.p_.y[2] - i + 1) and 1 or 0, i)
+            if lvl > 0 then g:led(s.p_.x, i, lvl) end
         end
     end,
     plane = function(s, g, v)
