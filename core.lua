@@ -45,7 +45,7 @@ local function handle(device, handler, props, priv, hargs, on_update)
     end
 end
 
--- grid
+-- grid (well move this to norns actually)
 
 nest.connect_grid = function(loop, g, fps)
     local fps = fps or 30
