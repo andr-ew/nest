@@ -1,4 +1,7 @@
 nest = {
+    --TODO: need flag per-device
+    -- nest.has_input.grid
+    -- nest.is_drawing.grid
     mode_input = false,
     mode_redraw = false,
     handle = {},
@@ -80,10 +83,12 @@ nest.connect_grid = function(loop, g, fps)
     return redraw_grid
 end
 
+-- nest.handle_input.grid
 nest.handle.grid = function(...)
     handle('grid', ...)
 end
 
+-- nest.handle_draw.grid
 nest.redraw.grid = function(handler, props, priv)
     handler(props, nest.device.grid, props.state and props.state[1] or priv.value)
 end
