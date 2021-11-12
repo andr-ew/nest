@@ -1046,7 +1046,7 @@ _grid.number.input.muxhandler = _obj_:new {
     line = function(s, i, _, z) 
         --local i = x - s.p_.x[1] + 1
         local min, max = fingers(s)
-        local m = s.p_.min - 1
+        local m = ((s.p_.controlspec and s.p_.controlspec.minval) or s.p_.min or 1) - 1
         local e = edge[s.p_.edge]
 
         if z > 0 then
@@ -1101,7 +1101,7 @@ _grid.number.input.muxhandler = _obj_:new {
         local e = edge[s.p_.edge]
 
         local min, max = fingers(s)
-        local m = s.p_.min
+        local m = ((s.p_.controlspec and s.p_.controlspec.minval) or s.p_.min or 1) - 1
         m = type(m) ~= 'table' and { m, m } or m
         for i,v in ipairs(m) do m[i] = v - 1 end
 
@@ -1192,7 +1192,7 @@ _grid.number.output.muxredraw = _obj_:new {
         end
     end,
     plane = function(s, g, v)
-        local m = s.p_.min
+        local m = ((s.p_.controlspec and s.p_.controlspec.minval) or s.p_.min or 1) - 1
         m = type(m) ~= 'table' and { m, m } or m
         for i = s.p_.x[1], s.p_.x[2] do
             for j = s.p_.y[1], s.p_.y[2] do
@@ -1242,7 +1242,7 @@ _grid.control.input.muxhandler = _obj_:new {
         local v,t,d = _grid.number.input.muxhandler.line(s, x, y, z)
         if v then
             local r = type(s.x) == 'table' and s.x or s.y
-            local vv = v / (r[2] - r[1])
+            local vv = (v - s.p_.controlspec.minval) / (r[2] - r[1])
 
             local c = s.p_.controlspec:map(vv)
             if s.p_.v ~= c then
@@ -1256,7 +1256,7 @@ _grid.control.input.muxhandler = _obj_:new {
             local ret = false
             for _,k in ipairs { 'x', 'y' } do
                 local r = s[k]
-                local vv = (v[k] - 1) / (r[2] - r[1])
+                local vv = (v[k] - s.p_.controlspec.minval) / (r[2] - r[1])
 
                 local c = s.p_.controlspec:map(vv)
                 if s.p_.v[k] ~= c then
