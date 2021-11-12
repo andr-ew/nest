@@ -1187,8 +1187,8 @@ _grid.number.output.muxredraw = _obj_:new {
     --TODO: wrap
     line_y = function(s, g, v)
         for i = 1, s.p_.y[2] - s.p_.y[1] + 1 do
-            local lvl = lvl(s, (s.p_.v - s.p_.min + 1 == s.p_.y[2] - i + 1) and 1 or 0, i)
-            if lvl > 0 then g:led(s.p_.x, i, lvl) end
+            local lvl = lvl(s, (s.p_.v - s.p_.min + 1 == i) and 1 or 0, i)
+            if lvl > 0 then g:led(s.p_.x, s.p_.y[2] - i + 1, lvl) end
         end
     end,
     plane = function(s, g, v)
