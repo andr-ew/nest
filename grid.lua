@@ -1213,7 +1213,8 @@ _grid.control = _grid.number:new {
     quantum = 0.01,
     warp = 'lin',
     wrap = false,
-    controlspec = nil
+    controlspec = nil,
+    filtersame = false,
 }
 
 _grid.control.new = function(self, o)
@@ -1291,11 +1292,10 @@ _grid.control.output.muxredraw = _obj_:new {
             local l = lvl(s, 0)
             local vv = (i - s.p_.y[1]) / (s.p_.y[2] - s.p_.y[1])
             local m = s.p_.controlspec:map(vv)
-            --print("m", i - s.p_.x[1], m)
             if m == v then l = lvl(s, 2)
             elseif m > v and m <= 0 then l = lvl(s, 1)
             elseif m < v and m >= 0 then l = lvl(s, 1) end
-            if l > 0 then g:led(s.p_.x, s.p_.y[2] - i + 2, l) end
+            if l > 0 then g:led(s.p_.x, s.p_.y[2] - i + s.p_.y[1], l) end
         end
     end,
     plane = function(s, g, v)
