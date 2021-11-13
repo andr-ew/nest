@@ -1089,8 +1089,10 @@ _grid.number.input.muxhandler = _obj_:new {
                 end
             elseif e == 2 then
                 --if i ~= s.p_.v or (not s.filtersame) then 
-                    s:replace('hlist', {})
-                    if i ~= s.p_.v then return i+m, len > 1 and util.time() - s.tdown or 0, i+m - s.vlast, nil, i+m end
+                s:replace('hlist', {})
+                    --if i ~= s.p_.v then 
+                return i+m, 0, i+m - s.vlast, nil, i+m
+                    --end
                 --end
             end
         end
@@ -1126,9 +1128,9 @@ _grid.number.input.muxhandler = _obj_:new {
                         return s.p_.v, len > 1 and util.time() - s.tdown or 0, _obj_ { s.p_.v.x - s.vlast.x, s.p_.v.y - s.vlast.y }, i
                     end
                 elseif e == 2 then
-                    if max == nil or len <= max then
+                    -- if max == nil or len <= max then
                         return s.p_.v, 0, _obj_ { s.p_.v.x - s.vlast.x, s.p_.v.y - s.vlast.y }, i
-                    end
+                    -- end
                 end
             end
         else
@@ -1160,9 +1162,9 @@ _grid.number.input.muxhandler = _obj_:new {
                 end
             elseif e == 2 then
                 s:replace('hlist', {})
-                if (i.x == s.p_.v.x and i.y == s.p_.v.y) then
+                -- if (i.x == s.p_.v.x and i.y == s.p_.v.y) then
                     return s.p_.v, util.time() - s.tdown, _obj_ { s.p_.v.x - s.vlast.x, s.p_.v.y - s.vlast.y }, nil, i
-                end
+                -- end
             end
         end
     end
