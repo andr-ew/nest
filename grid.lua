@@ -364,12 +364,12 @@ end
 
 local function fingers(s)
     local min = 0
-    local max = nil
+    local max = math.huge
 
     if type(s.p_.fingers) == "table" then 
         max = s.p_.fingers[#s.p_.fingers]
         min = #s.p_.fingers > 1 and s.p_.fingers[1] or 0
-    else max = s.p_.fingers end
+    else max = s.p_.fingers or max end
 
     return min, max
 end
