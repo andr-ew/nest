@@ -27,7 +27,7 @@ Grid.define = function(def)
                 value = state,
                 clock = true,
             } 
-            setmetatable(priv, { __index = default_p })
+            -- setmetatable(priv, { __index = default_p })
 
             local init = def.init
 
@@ -54,10 +54,27 @@ Grid.define = function(def)
             setmetatable(handlers, { __index = handlers_blank })
 
             return function(p)
-                setmetatable(p, { __index = priv })
+                setmetatable(p, { __index = default_p })
+
+                --TODO: alias the p_ child and replace method, for backwards compatability with routines
+                --  newindex can go straight into priv, since we never want the routines to add new props
+                --  could actually simplify this by making p a "parent" of priv
+                --  ah! p_ can just go straight to the props, while s indexes to priv !! if there are any excepetions to this rule it makes sense to update it in routines
+                local s = setmetatable({
+                    p_ = setmetatable({}, {
+                        __index = p
+                        __call = function()
+                            --TODO
+                        end
+                    })
+                }, {
+                    __index = priv
+                    __newindex = priv
+                })
                 
                 if nest.mode_input then
 
+                    --TODO: filter function should be replaceible def
                     local contained, x, y, z = filter_input(p, priv, init, nest.args.grid)
 
                     if contained then
