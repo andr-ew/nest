@@ -66,7 +66,10 @@ Grid.define = function(def)
                         __call = function()
                             --TODO
                         end
-                    })
+                    }),
+                    replace = function(s, k, v)
+                        priv[k] = v
+                    end
                 }, {
                     __index = priv
                     __newindex = priv
