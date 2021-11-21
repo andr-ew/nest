@@ -17,7 +17,7 @@ end
 nest.render_error = function(name)
 end
 
-local function handle(device, handler, props, priv, hargs, on_update)
+local function handle(device, handler, props, data, hargs, on_update)
     local aargs = table.pack(handler(props, table.unpack(hargs)))
     
     local function action()
@@ -30,7 +30,7 @@ local function handle(device, handler, props, priv, hargs, on_update)
             aargs[1] = v
             props.state[2](table.unpack(aargs))
         else
-            priv.value = v
+            data.value = v
         end
         
         if(on_update) then on_update(v) end
@@ -39,9 +39,9 @@ local function handle(device, handler, props, priv, hargs, on_update)
     if aargs and aargs[1] then
         --TODO: pass handler, props, hargs, on_update to active observers
         
-        if props.action and priv.clock then
-            if priv.clock_id then clock.cancel(priv.clock_id) end
-            priv.clock_id = clock.run(action)
+        if props.action and data.clock then
+            if data.clock_id then clock.cancel(data.clock_id) end
+            data.clock_id = clock.run(action)
         else
             action()
         end
@@ -89,8 +89,8 @@ nest.handle.grid = function(...)
 end
 
 -- nest.handle_draw.grid
-nest.redraw.grid = function(handler, props, priv)
-    handler(props, nest.device.grid, props.state and props.state[1] or priv.value)
+nest.redraw.grid = function(handler, props, data)
+    handler(props, nest.device.grid, props.state and props.state[1] or data.value)
 end
 
 return nest

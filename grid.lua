@@ -1,16 +1,61 @@
+local rout = include 'lib/nest/routines/grid'
+
 local Grid = {}
 
-local function filter_input(p, priv, init, args)
-    --TODO: filter input + initialize private data & value based on props x & y + return custom handler args
-    
-    return contained, x, y, z
+local input_contained = function(s, inargs)
+    local contained = { x = false, y = false }
+    local axis_size = { x = nil, y = nil }
+
+    local args = { x = inargs[1], y = inargs[2] }
+
+    for i,v in ipairs{"x", "y"} do
+        if type(s.p_[v]) == "table" then
+            if #s.p_[v] == 1 then
+                s[v] = s.p_[v][1]
+                if s.p_[v] == args[v] then
+                    contained[v] = true
+                end
+            elseif #s.p_[v] == 2 then
+                if  s.p_[v][1] <= args[v] and args[v] <= s.p_[v][2] then
+                    contained[v] = true
+                end
+                axis_size[v] = s.p_[v][2] - s.p_[v][1] + 1
+            end
+        else
+            if s.p_[v] == args[v] then
+                contained[v] = true
+            end
+        end
+    end
+
+    return contained.x and contained.y, axis_size
 end
+
+local function filter_input(s, args)
+    local contained, axis_size = input_contained(s, args)
+
+    if contained then
+        if axis_size.x == nil and axis_size.y == nil then
+            return "point", nil, { nil, nil, args[3] }
+        elseif axis_size.x ~= nil and axis_size.y ~= nil then
+            return "plane", axis_size, { args[1] - s.p_.x[1] + 1, s.p_.y[2] - args[2] + 1, args[3] }
+        else
+            if axis_size.x ~= nil then
+                return "line", axis_size.x, { args[1] - s.p_.x[1] + 1, nil, args[3] }
+            elseif axis_size.y ~= nil then
+                return  "line", axis_size.y, { s.p_.y[2] - args[2] + 1, nil, args[3] }
+            end
+        end
+    else return nil end
+end
+
 
 Grid.define = function(def) 
     def.name = def.name or ''
-    def.init = def.init or function(format, priv) end
+    def.init = def.init or function(format, data) end
     def.default_props = def.default_props or {}
     def.handlers = def.handlers or {}
+    def.input_filter = def.input_filter or filter_input
 
     local grid_default_props = {
         x = 1, y = 1, lvl = 15,
@@ -20,14 +65,13 @@ Grid.define = function(def)
         if not nest.rendering.grid then
             state = state or 0
 
-            local default_p = def.default_props
-            setmetatable(default_p, { __index = grid_default_props })
+            local default_props = def.default_props
+            setmetatable(default_props, { __index = grid_default_props })
 
-            local priv = { 
+            local data = { 
                 value = state,
                 clock = true,
             } 
-            -- setmetatable(priv, { __index = default_p })
 
             local init = def.init
 
@@ -53,54 +97,88 @@ Grid.define = function(def)
             local handlers = def.handlers
             setmetatable(handlers, { __index = handlers_blank })
 
-            return function(p)
-                setmetatable(p, { __index = default_p })
+            return function(props)
+                setmetatable(props, { __index = default_props })
 
-                --TODO: alias the p_ child and replace method, for backwards compatability with routines
-                --  newindex can go straight into priv, since we never want the routines to add new props
-                --  could actually simplify this by making p a "parent" of priv
-                --  ah! p_ can just go straight to the props, while s indexes to priv !! if there are any excepetions to this rule it makes sense to update it in routines
+                -- proxy for props & data for backwards compatability with routines/
                 local s = setmetatable({
                     p_ = setmetatable({}, {
-                        __index = p
-                        __call = function()
-                            --TODO
+                        __index = props,
+                        __call = function(_, k, ...)
+                            if type(props[k]) == 'function' then
+                                return props[k](data, ...)
+                            else
+                                return props[k]
+                            end
                         end
                     }),
                     replace = function(s, k, v)
-                        priv[k] = v
+                        data[k] = v
                     end
                 }, {
-                    __index = priv
-                    __newindex = priv
+                    __index = data
+                    __newindex = data
                 })
                 
                 if nest.mode_input then
 
-                    --TODO: filter function should be replaceible def
-                    local contained, x, y, z = filter_input(p, priv, init, nest.args.grid)
+                    local fmt, size, args = table.unpack(def.input_filter(s, nest.args.grid))
 
-                    if contained then
+                    if fmt then
                         
+                        if fmt ~= data.format then
+                            data.format = fmt
+                            def.init(data.format, size, data)
+                        end
+
                         --map "v" to wherever value should be coming from
                         if props.state and props.state[1] then 
                             props.v = props.state[1]
                         else
-                            props.v = priv.value
+                            props.v = data.value
                         end
         
                         nest.handle.grid(
-                            handlers.input[priv.format], 
-                            p, priv, { x, y, z }, 
-                            handlers.change[priv.format]
+                            handlers.input[data.format], 
+                            props, data, args, 
+                            handlers.change[data.format]
                         )
                     end
                 elseif nest.mode_redraw then
-                    nest.redraw.grid(handlers.redraw[priv.format], p, priv)
-                else nest.render_error('Grid.toggle()') end
+                    nest.redraw.grid(handlers.redraw[data.format], props, data)
+                else nest.render_error('Grid.'..name..'()') end
             end
-        else nest.constructor_error('Grid.toggle()') end
+        else nest.constructor_error('Grid.'..name..'()') end
     end
 end
+
+local function minit(format, size) 
+    --TODO
+end
+
+local binaryvals = function(format, size, o)
+    o.list = {}
+
+    o.v = minit(format, size)
+    o.held = minit(format, size)
+    o.tdown = minit(format, size)
+    o.tlast = minit(format, size)
+    o.theld = minit(format, size)
+    o.vinit = minit(format, size)
+    o.lvl_frame = minit(format, size)
+    o.lvl_clock = minit(format, size)
+    o.blank = {}
+end
+
+Grid.momentary = Grid.define{
+    name = 'momentary',
+    default_props = {
+        edge = 'both',
+    },
+    init = function(format, size, data) 
+        binaryvals(format, size, data)
+    end,
+    handlers = rout.momentary
+}
 
 return Grid
