@@ -62,7 +62,7 @@ Grid.define = function(def)
     }
 
     return function(state)
-        if not nest.rendering.grid then
+        if not nest.loop.started.grid then
             state = state or 0
 
             local default_props = def.default_props
@@ -98,57 +98,67 @@ Grid.define = function(def)
             setmetatable(handlers, { __index = handlers_blank })
 
             return function(props)
-                setmetatable(props, { __index = default_props })
+                if nest.loop.device == 'grid' then
 
-                -- proxy for props & data for backwards compatability with routines/
-                local s = setmetatable({
-                    p_ = setmetatable({}, {
-                        __index = props,
-                        __call = function(_, k, ...)
-                            if type(props[k]) == 'function' then
-                                return props[k](data, ...)
-                            else
-                                return props[k]
+                    setmetatable(props, { __index = default_props })
+
+                    -- proxy for props & data for backwards compatability with routines/
+                    local s = setmetatable({
+                        p_ = setmetatable({}, {
+                            __index = props,
+                            __call = function(_, k, ...)
+                                if type(props[k]) == 'function' then
+                                    return props[k](data, ...)
+                                else
+                                    return props[k]
+                                end
                             end
+                        }),
+                        replace = function(s, k, v)
+                            data[k] = v
                         end
-                    }),
-                    replace = function(s, k, v)
-                        data[k] = v
+                    }, {
+                        __index = data,
+                        __newindex = data,
+                    })
+
+                    --map "v" to wherever value should be coming from
+                    if props.state and props.state[1] then 
+                        props.v = props.state[1]
+                    else
+                        props.v = data.value
                     end
-                }, {
-                    __index = data
-                    __newindex = data
-                })
-                
-                if nest.mode_input then
 
-                    local fmt, size, args = table.unpack(def.input_filter(s, nest.args.grid))
+                    if nest.loop.mode == 'input' then
 
-                    if fmt then
-                        
-                        if fmt ~= data.format then
-                            data.format = fmt
-                            def.init(data.format, size, data)
+                        local fmt, size, hargs = def.input_filter(s, nest.args.grid)
+
+                        if fmt then
+                            if fmt ~= data.format then
+                                data.format = fmt
+                                def.init(data.format, size, data)
+                            end
+            
+                            local x, y, z = hargs[1], hargs[2], hargs[3]
+                            nest.handle.grid(
+                                handlers.input[data.format], 
+                                props, 
+                                data, 
+                                { s, x, y, z }, 
+                                handlers.change[data.format]
+                            )
                         end
-
-                        --map "v" to wherever value should be coming from
-                        if props.state and props.state[1] then 
-                            props.v = props.state[1]
-                        else
-                            props.v = data.value
-                        end
-        
-                        nest.handle.grid(
-                            handlers.input[data.format], 
-                            props, data, args, 
-                            handlers.change[data.format]
+                    elseif nest.loop.mode == 'redraw' then
+                        nest.redraw.grid(
+                            handlers.redraw[data.format], 
+                            s, 
+                            nest.device.grid, 
+                            props.v
                         )
-                    end
-                elseif nest.mode_redraw then
-                    nest.redraw.grid(handlers.redraw[data.format], props, data)
-                else nest.render_error('Grid.'..name..'()') end
+                    else nest.render_error('Grid.'..def.name..'()') end
+                end
             end
-        else nest.constructor_error('Grid.'..name..'()') end
+        else nest.constructor_error('Grid.'..def.name..'()') end
     end
 end
 

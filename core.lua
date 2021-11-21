@@ -1,9 +1,9 @@
 nest = {
-    --TODO: need flag per-device
-    -- nest.has_input.grid
-    -- nest.is_drawing.grid
-    mode_input = false,
-    mode_redraw = false,
+    loop = {
+        device = nil,
+        mode = nil,
+        started = {}
+    },
     handle = {},
     redraw = {},
     device = {},
@@ -13,18 +13,20 @@ nest = {
 }
 
 nest.constructor_error = function(name)
+    print('constructor error', name)
 end
 nest.render_error = function(name)
+    print('render error', name)
 end
 
 local function handle(device, handler, props, data, hargs, on_update)
-    local aargs = table.pack(handler(props, table.unpack(hargs)))
+    local aargs = table.pack(handler(table.unpack(hargs)))
     
     local function action()
         local v = props.action and props.action(table.unpack(aargs)) or aargs[1]
 
         nest.dirty[device] = true
-
+        
         if(props.state and props.state[2]) then
             --TODO: throw helpful error if state[2] is not a function
             aargs[1] = v
@@ -57,8 +59,8 @@ nest.connect_grid = function(loop, g, fps)
         g:all(0)
 
         nest.device.grid = g
-        nest.mode_redraw = true
-        nest.mode_input = false
+        nest.loop.device = 'grid'
+        nest.loop.mode = 'redraw'
         loop()
 
         g:refresh()
@@ -68,15 +70,17 @@ nest.connect_grid = function(loop, g, fps)
         nest.args.grid = { x, y, z }
 
         nest.device.grid = g
-        nest.mode_redraw = false
-        nest.mode_input = true
+        nest.loop.device = 'grid'
+        nest.loop.mode = 'input'
         loop()
     end
 
+    nest.loop.started.grid = true
     local cl = clock.run(function()
         while true do
             clock.sleep(1/fps)
             if nest.dirty.grid then
+                nest.dirty.grid = false
                 redraw_grid()
             end
         end
@@ -91,8 +95,8 @@ nest.handle.grid = function(...)
 end
 
 -- nest.handle_draw.grid
-nest.redraw.grid = function(handler, props, data)
-    handler(props, nest.device.grid, props.state and props.state[1] or data.value)
+nest.redraw.grid = function(handler, ...)
+    handler(...)
 end
 
 return nest
