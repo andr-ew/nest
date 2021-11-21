@@ -200,8 +200,6 @@ _grid.momentary = _grid.binary:new { edge = 'both', persistent = false }
 
 _grid.momentary.input.muxhandler = rout.momentary.input
 
-local edge = { rising = 1, falling = 0, both = 2 }
-
 _grid.toggle = _grid.binary:new { edge = 'rising' }
 
 _grid.toggle.new = function(self, o) 
