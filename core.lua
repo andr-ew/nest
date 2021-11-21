@@ -73,14 +73,16 @@ nest.connect_grid = function(loop, g, fps)
         loop()
     end
 
-    while true do
-        clock.sleep(1/fps)
-        if nest.dirty.grid then
-            redraw_grid()
+    local cl = clock.run(function()
+        while true do
+            clock.sleep(1/fps)
+            if nest.dirty.grid then
+                redraw_grid()
+            end
         end
-    end
+    end)
 
-    return redraw_grid
+    return redraw_grid, cl
 end
 
 -- nest.handle_input.grid
