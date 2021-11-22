@@ -4,10 +4,12 @@ nest = {
         mode = nil,
         started = {}
     },
-    handle = {},
-    redraw = {},
+    handle_input = {},
+    handle_redraw = {},
     device = {},
-    dirty = {},
+    dirty = {
+        grid = true
+    },
     args = {},
     observers = {},
 }
@@ -19,7 +21,7 @@ nest.render_error = function(name)
     print('render error', name)
 end
 
-local function handle(device, handler, props, data, hargs, on_update)
+function nest.handle_input.device(device, handler, props, data, hargs, on_update)
     local aargs = table.pack(handler(table.unpack(hargs)))
     
     local function action()
@@ -35,7 +37,7 @@ local function handle(device, handler, props, data, hargs, on_update)
             data.value = v
         end
         
-        if(on_update) then on_update(v) end
+        if(on_update) then on_update(props, data, v, hargs) end
     end
 
     if aargs and aargs[1] then
@@ -48,55 +50,6 @@ local function handle(device, handler, props, data, hargs, on_update)
             action()
         end
     end
-end
-
--- grid (well move this to norns actually)
-
-nest.connect_grid = function(loop, g, fps)
-    local fps = fps or 30
-
-    local redraw_grid = function()
-        g:all(0)
-
-        nest.device.grid = g
-        nest.loop.device = 'grid'
-        nest.loop.mode = 'redraw'
-        loop()
-
-        g:refresh()
-    end
-
-    g.key = function(x, y, z)
-        nest.args.grid = { x, y, z }
-
-        nest.device.grid = g
-        nest.loop.device = 'grid'
-        nest.loop.mode = 'input'
-        loop()
-    end
-
-    nest.loop.started.grid = true
-    local cl = clock.run(function()
-        while true do
-            clock.sleep(1/fps)
-            if nest.dirty.grid then
-                nest.dirty.grid = false
-                redraw_grid()
-            end
-        end
-    end)
-
-    return redraw_grid, cl
-end
-
--- nest.handle_input.grid
-nest.handle.grid = function(...)
-    handle('grid', ...)
-end
-
--- nest.handle_draw.grid
-nest.redraw.grid = function(handler, ...)
-    handler(...)
 end
 
 return nest
