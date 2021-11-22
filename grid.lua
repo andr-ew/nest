@@ -139,7 +139,6 @@ Grid.define = function(def)
             setmetatable(default_props, { __index = grid_default_props })
 
             local data = { 
-                value = state,
                 clock = true,
             } 
 
@@ -229,7 +228,7 @@ Grid.define = function(def)
                             data.format = fmt
                             data.size = size
 
-                            def.init(ifmt, size, st, data)
+                            def.init(ifmt, size, st, data, props)
                         end
 
                         if props.state and props.state[1] then 
@@ -362,9 +361,78 @@ Grid.fill = Grid.define{
     handlers = rout.fill
 }
 
+local input_contained_wrap = function(s, inargs, axis_size)
+    inargs = inargs or { -1, -1 }
+    local w, x, y = s.p_.wrap, inargs[1], inargs[2]
+    if axis_size.x then
+        for i = 1, axis_size.x do
+            local maj = (i-1)%w + 1
+            local min = (i-1)//w + 1
+
+            if maj + s.p_.x[1] - 1 == x and min + s.p_.y - 1 == y then return true, i end
+        end
+    else
+        --TODO: modified logic for vertical affordance
+    end
+end
+
+local filter_wrap = function(s, args)
+    local contained, axis_size = input_contained(s, args)
+
+    if (s.p_.wrap~=nil) and ((axis_size.x == nil) ~= (axis_size.y == nil)) then
+        local cont, i = input_contained_wrap(s, args, axis_size)
+        
+        return contained, "line", args, (axis_size.x or axis_size.y) and { i, nil, args[3] }
+    end
+
+    if axis_size.x == nil and axis_size.y == nil then
+        return  contained, "point", nil, args and { nil, nil, args[3] }
+    elseif axis_size.x ~= nil and axis_size.y ~= nil then
+        return contained, "plane", axis_size, args and { args[1] - s.p_.x[1] + 1, s.p_.y[2] - args[2] + 1, args[3] }
+    else
+        if axis_size.x ~= nil then
+            return contained, "line_x", axis_size.x, args and { args[1] - s.p_.x[1] + 1, nil, args[3] }
+        elseif axis_size.y ~= nil then
+            return contained, "line_y", axis_size.y, args and { s.p_.y[2] - args[2] + 1, nil, args[3] }
+        end
+    end
+end
+
 Grid.number = Grid.define{
     name = 'number',
-    default_props = {}
+    default_props = {
+        edge = 'rising', fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, min = 1, max = math.huge
+    },
+    init = function(format, size, state, data)
+        local def = format == 'plane' and { x=1, y=1 } or 1
+        state[2](state[1] or def)
+
+        data.vlast = state[1] or def
+        data.hlist = {}
+    end,
+    handlers = rout.number,
+    filter = filter_wrap,
+}
+
+local cs = require 'controlspec'
+
+Grid.control = Grid.define{
+    name = 'control',
+    default_props = {
+        edge = 'rising', fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, min = 1, max = math.huge,
+        lvl = { 0, 4, 15 },
+        controlspec = cs.new(),
+        filtersame = false,
+    },
+    init = function(format, size, state, data, props)
+        local dv = props.controlspec.default or props.controlspec.minval
+        local def = format == 'plane' and { x=dv, y=dv } or dv
+        state[2](state[1] or def)
+
+        data.vlast = state[1] or def
+        data.hlist = {}
+    end,
+    handlers = rout.control
 }
 
 return Grid
