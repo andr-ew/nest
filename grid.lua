@@ -435,4 +435,24 @@ Grid.control = Grid.define{
     handlers = rout.control
 }
 
+Grid.range = Grid.define{
+    name = 'range',
+    default_props = {
+        edge = 'rising'
+    },
+    init = function(format, size, state, data, props)
+        state[2](
+            format == 'plane'
+            and { { x = 0, y = 0 }, { x = 0, y = 0 } }
+            or { 0, 0 }
+        )
+        
+        data.hlist = {}
+        data.tdown = 0
+    end,
+    handlers = rout.range
+}
+
+--TODO: Grid.pattern
+
 return Grid
