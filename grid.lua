@@ -114,7 +114,7 @@ local function fill(format, size, n)
                 ret[x][y] = n
             end
         end
-    elseif format=='line' then
+    elseif format=='line_x' or format=='line_y' then
         for i = 1,size do
             ret[i] = n
         end

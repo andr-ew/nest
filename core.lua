@@ -14,7 +14,7 @@ nest = {
     },
     args = {},
     observers = {},
-    nest.defs = {},
+    defs = {},
 }
 
 nest.constructor_error = function(name)
@@ -55,7 +55,15 @@ function nest.handle_input.device(device, handler, props, data, hargs, on_update
     end
 end
 
-function nest.define_group = function(defgrp)
+local devk = {
+    grid = 'g',
+    arc = 'a',
+    screen = 'screen',
+    enc = 'enc',
+    key = 'key',
+}
+
+nest.define_group = function(defgrp)
     defgrp.name = defgrp.name or ''
     defgrp.device_input = defgrp.device_input or nil
     defgrp.device_redraw = defgrp.device_redraw or nil
@@ -70,18 +78,19 @@ function nest.define_group = function(defgrp)
         def.default_props = def.default_props or {}
         def.handlers = def.handlers or {}
         def.filter = def.filter or defgrp.filter
+        def.device_input = def.device_input or defgrp.device_input or nil
+        def.device_redraw = def.device_redraw or defgrp.device_redraw or nil
 
         nest.defs[defgrp.name][def.name] = def
 
         return function(state)
             if
-                (not nest.loop.started[defgrp.device_input])
-                and (not nest.loop.started[defgrp.device_redraw])
+                (not nest.loop.started[def.device_input])
+                and (not nest.loop.started[def.device_redraw])
             then
                 state = state or 0
 
-                local default_props = def.default_props
-                setmetatable(default_props, { __index = defgrp.default_props })
+                setmetatable(def.default_props, { __index = defgrp.default_props })
 
                 local data = { 
                     clock = true,
@@ -114,11 +123,11 @@ function nest.define_group = function(defgrp)
 
                 return function(props)
                     if 
-                        nest.loop.device == defgrp.device_input 
-                        or nest.loop.device == defgrp.device_redraw 
+                        nest.loop.device == def.device_input 
+                        or nest.loop.device == def.device_redraw 
                     then
 
-                        setmetatable(props, { __index = default_props })
+                        setmetatable(props, { __index = def.default_props })
 
                         -- proxy for props & data for backwards compatability with routines/
                         local s = setmetatable({
@@ -136,14 +145,15 @@ function nest.define_group = function(defgrp)
                                 data[k] = v
                             end,
                             devs = {
-                                g = setmetatable({}, {
+                                [devk[def.device_redraw]] = setmetatable({}, {
                                     __index = function(t, k)
-                                        if k=='dirty' then return nest.dirty[defgrp.device]
+                                        if k=='dirty' then 
+                                            return nest.dirty[def.device_redraw]
                                         else return rawget(t, k) end
                                     end,
                                     __newindex = function(t, k, v)
                                         if k=='dirty' then
-                                            nest.dirty[defgrp.device] = v
+                                            nest.dirty[def.device_redraw] = v
                                         else rawset(t,k,v) end
                                     end,
                                 }),
@@ -161,7 +171,12 @@ function nest.define_group = function(defgrp)
                         end
 
                         local contained, fmt, size, hargs = def.filter(
-                            s, nest.args[defgrp.device]
+                            s, 
+                            nest.args[
+                                nest.loop.mode == 'input' 
+                                and def.device_input 
+                                or def.device_redraw
+                            ]
                         )
 
                         if fmt then
@@ -191,13 +206,13 @@ function nest.define_group = function(defgrp)
 
                             if 
                                 nest.loop.mode == 'input' 
-                                and nest.loop.device == defgrp.device_input 
+                                and nest.loop.device == def.device_input 
                             then
                                 if contained then
                                     local shargs = { s }
-                                    for i,v in ipairs(hargs) do table.insert(shargs, v) end
+                                    for i,v in pairs(hargs) do shargs[i+1] = v end
 
-                                    nest.handle_input[defgrp.device](
+                                    nest.handle_input[def.device_input](
                                         def.handlers.input[fmt], 
                                         props, 
                                         data, 
@@ -209,21 +224,21 @@ function nest.define_group = function(defgrp)
                                 end
                             elseif 
                                 nest.loop.mode == 'redraw'
-                                and nest.loop.device == defgrp.device_redraw
+                                and nest.loop.device == def.device_redraw
                             then
-                                nest.handle_redraw[defgrp.device](
+                                nest.handle_redraw[def.device_redraw](
                                     def.handlers.redraw[fmt], 
                                     s, 
-                                    nest.device[defgrp.device], 
+                                    nest.device[def.device_redraw], 
                                     props.v
                                 )
                             elseif  
                                 (
-                                    defgrp.device_input 
-                                    and not nest.loop.started[defgrp.device_input]
+                                    def.device_input 
+                                    and not nest.loop.started[def.device_input]
                                 ) or (
-                                    defgrp.device_redraw 
-                                    and not nest.loop.started[defgrp.device_redraw]
+                                    def.device_redraw 
+                                    and not nest.loop.started[def.device_redraw]
                                 )
                             then 
                                 nest.render_error(defgrp.name..'.'..def.name..'()') 
