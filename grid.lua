@@ -19,7 +19,6 @@ nest.connect_grid = function(loop, g, fps)
 
     g.key = function(x, y, z)
         nest.args.grid = { x, y, z }
-
         nest.device.grid = g
         nest.loop.device = 'grid'
         nest.loop.mode = 'input'
