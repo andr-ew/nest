@@ -3,38 +3,31 @@ local rout = include 'lib/nest/routines/grid'
 local Grid = {}
 
 nest.connect_grid = function(loop, g, fps)
-    local fps = fps or 30
+    local 
+        input_flags, 
+        redraw_flags, 
+        begin_loop 
+    = nest.define_connection{
+        device_name = 'grid',
+        device = g,
+        fps = fps
+    }
+
+    g.key = function(x, y, z)
+        input_flags(x, y, z)
+        loop()
+    end
 
     local redraw_grid = function()
         g:all(0)
 
-        nest.args.grid = nil
-        nest.device.grid = g
-        nest.loop.device = 'grid'
-        nest.loop.mode = 'redraw'
+        redraw_flags()
         loop()
 
         g:refresh()
     end
 
-    g.key = function(x, y, z)
-        nest.args.grid = { x, y, z }
-        nest.device.grid = g
-        nest.loop.device = 'grid'
-        nest.loop.mode = 'input'
-        loop()
-    end
-
-    nest.loop.started.grid = true
-    local cl = clock.run(function()
-        while true do
-            clock.sleep(1/fps)
-            if nest.dirty.grid then
-                nest.dirty.grid = false
-                redraw_grid()
-            end
-        end
-    end)
+    begin_loop(redraw_grid)
 
     return redraw_grid, cl
 end
@@ -93,7 +86,7 @@ local function filter(s, args)
     end
 end
 
-Grid.define = nest.define_group{
+Grid.define = nest.define_group_def{
     name = 'Grid',
     device_input = 'grid',
     device_redraw = 'grid',
