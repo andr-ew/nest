@@ -157,7 +157,7 @@ _screen = _screen_group.affordance
 
 ------------------------------------ENC---------------------------------------------------
 
-local rout = include 'lib/nest/routines/grid'
+local rout = include 'lib/nest/routines/norns'
 
 _enc = _group:new()
 _enc.devk = 'enc'
@@ -283,7 +283,6 @@ _enc.option.input.muxhandler = rout.enc.option.input
 
 -----------------------------------KEY------------------------------------------------------
 
-local edge = { rising = 1, falling = 0, both = 2 }
 
 _key = _group:new()
 _key.devk = 'key'
