@@ -24,7 +24,6 @@ nest.define_connection = function(def)
     def.fps = def.fps or 30
 
     local redraw_flags = function()
-        -- nest.device[def.device_name] = def.device
         nest.loop.args = nil
         nest.loop.device_name = def.device_name
         nest.loop.device = def.device
@@ -63,6 +62,8 @@ nest.render_error = function(name)
 end
 
 function nest.handle_input.device(device, handler, props, data, hargs, on_update)
+    --TODO: pass handler, props, hargs, on_update to active observers
+        
     local aargs = table.pack(handler(table.unpack(hargs)))
     
     local function action()
@@ -82,8 +83,6 @@ function nest.handle_input.device(device, handler, props, data, hargs, on_update
     end
 
     if aargs and aargs[1] then
-        --TODO: pass handler, props, hargs, on_update to active observers
-        
         if props.action and data.clock then
             if data.clock_id then clock.cancel(data.clock_id) end
             data.clock_id = clock.run(action)

@@ -29,7 +29,7 @@ nest.connect_grid = function(loop, g, fps)
 
     begin_loop(redraw_grid)
 
-    return redraw_grid, cl
+    return redraw_grid
 end
 
 nest.handle_input.grid = function(...)
