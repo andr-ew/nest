@@ -32,13 +32,13 @@ nest.connect_grid = function(loop, g, fps)
     return redraw_grid
 end
 
-nest.handle_input.grid = function(...)
-    nest.handle_input.device('grid', ...)
-end
+-- nest.handle_input.grid = function(...)
+--     nest.handle_input.device('grid', ...)
+-- end
 
-nest.handle_redraw.grid = function(handler, ...)
-    handler(...)
-end
+-- nest.handle_redraw.grid = function(handler, ...)
+--     handler(...)
+-- end
 
 local input_contained = function(s, inargs)
     inargs = inargs or { -1, -1 }

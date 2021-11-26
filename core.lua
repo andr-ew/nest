@@ -6,8 +6,6 @@ nest = {
         mode = nil,
         started = {}
     },
-    handle_input = {},
-    handle_redraw = {},
     -- device = {},
     dirty = {
         grid = true,
@@ -61,7 +59,7 @@ nest.render_error = function(name)
     print('render error', name)
 end
 
-function nest.handle_input.device(device, handler, props, data, hargs, on_update)
+function nest.handle_input(device, handler, props, data, hargs, on_update)
     --TODO: pass handler, props, hargs, on_update to active observers
         
     local aargs = table.pack(handler(table.unpack(hargs)))
@@ -168,6 +166,7 @@ nest.define_group_def = function(defgrp)
 
                         -- proxy for props & data for backwards compatability with routines/
                         local s = setmetatable({
+                            --TODO: allow function props (mostly for backwards compatability)
                             p_ = setmetatable({}, {
                                 __index = props,
                                 __call = function(_, k, ...)
@@ -250,7 +249,8 @@ nest.define_group_def = function(defgrp)
                                     local shargs = { s }
                                     for i,v in pairs(hargs) do shargs[i+1] = v end
 
-                                    nest.handle_input[def.device_input](
+                                    nest.handle_input(
+                                        def.device_input,
                                         def.handlers.input[fmt], 
                                         props, 
                                         data, 
@@ -264,12 +264,12 @@ nest.define_group_def = function(defgrp)
                                 nest.loop.mode == 'redraw'
                                 and nest.loop.device_name == def.device_redraw
                             then
-                                nest.handle_redraw[def.device_redraw](
-                                    def.handlers.redraw[fmt], 
+                                def.handlers.redraw[fmt](
                                     s, 
                                     nest.loop.device, 
                                     props.v
                                 )
+
                             elseif  
                                 (
                                     def.device_input 
