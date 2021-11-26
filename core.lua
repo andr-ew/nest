@@ -123,7 +123,7 @@ nest.define_group_def = function(defgrp)
                 (not nest.loop.started[def.device_input])
                 and (not nest.loop.started[def.device_redraw])
             then
-                state = state or 0
+                -- state = state or 0
 
                 setmetatable(def.default_props, { __index = defgrp.default_props })
 
@@ -180,7 +180,7 @@ nest.define_group_def = function(defgrp)
                             replace = function(s, k, v)
                                 data[k] = v
                             end,
-                            devs = {
+                            devs = def.device_redraw and {
                                 [devk[def.device_redraw]] = setmetatable({}, {
                                     __index = function(t, k)
                                         if k=='dirty' then 

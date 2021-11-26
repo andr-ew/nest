@@ -119,7 +119,7 @@ end
 
 local init_binary = function(format, size, state, o)
 
-    --TODO: check for correct format before overwriting value table
+    --TODO: check for correct format before overwriting value
     state[2](fill(format, size, 0))
     
     o.list = {}
@@ -185,7 +185,7 @@ Grid.fill = Grid.define{
     default_props = {},
     init = function(format, size, state, data)
 
-        --TODO: check for correct format before overwriting value table
+        --TODO: check for correct format before overwriting value
         state[2](fill(format, size, 1))
     end,
     handlers = rout.fill
@@ -233,8 +233,11 @@ Grid.number = Grid.define{
     default_props = {
         edge = 'rising', fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, min = 1, max = math.huge
     },
-    init = function(format, size, state, data)
-        local def = format == 'plane' and { x=1, y=1 } or 1
+    init = function(format, size, state, data, props)
+
+        --TODO: check for state before overwrite
+        local dv = props.min or 1
+        local def = format == 'plane' and { x=dv, y=dv } or dv
         state[2](state[1] or def)
 
         data.vlast = state[1] or def
