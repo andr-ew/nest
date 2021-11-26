@@ -2,6 +2,15 @@ local rout = include 'lib/nest/routines/txt'
 
 local Text = {}
 
+local defs = nest.defs
+
+local handlers = {
+    redraw = {
+        point = rout.redraw,
+        line = rout.redraw,
+    }
+}
+
 Text.define = nest.define_group_def{
     name = 'Text',
     device_redraw = 'screen',
@@ -27,15 +36,8 @@ Text.define = nest.define_group_def{
         scroll_focus = nil, -- 3 or { 1, 6 }
         selection = nil -- 1 or { 1, 2 } or { x = 1, y = 2 }, or { { x = 1, y = 2 }, x = 3, y = 4 } }
     },
-    handlers = {
-        redraw = {
-            point = rout.redraw,
-            line = rout.redraw,
-        }
-    }
+    handlers = handlers
 }
-
-local defs = nest.defs
 
 Text.label = Text.define{
     name = 'label',
@@ -49,6 +51,61 @@ Text.label = Text.define{
         --contained, fmt, size, hargs
         return nil, 'point'
     end
+}
+
+local lab_comp = {
+    props = {
+        lvl = function(s, props) return props.label and { 4, 15 } or 15 end,
+        step = 0.01,
+        margin = 5
+    },
+    init = function(format, size, state, data, props) 
+        data.formatter = function(s, ...) return ... end
+        data.txt = function(s) 
+            if s.p_.label then 
+                if type(s.p_.v) == 'table' then
+                    local vround = {}
+                    for i,v in ipairs(s.p_.v) do vround[i] = util.round(v, s.p_.step) end
+                    return { s.p_.label, s:formatter(table.unpack(vround)) }
+                else return { s.p_.label, s:formatter(util.round(s.p_.v, s.p_.step)) } end
+            else return s:formatter(util.round(s.p_.v, s.p_.step)) end
+        end
+    end,
+    handlers = handlers
+}
+
+local join = function(...)
+    local tabs = { ... }
+    local ret = {}
+
+    for _,tab in ipairs(tabs) do
+        for k,v in pairs(tab) do
+            ret[k] = v
+        end
+    end
+
+    return ret
+end
+
+Text.enc = {}
+
+Text.enc.number = Text.define{
+    name = 'enc.number', 
+    device_input = 'enc',
+    default_props = join(
+        lab_comp.props, 
+        defs.Enc.number.default_props
+    ),
+    init = function(...) 
+        defs.Enc.number.init(...)
+        lab_comp.init(...)
+    end,
+    handlers = {
+        input = defs.Enc.number.handlers.input,
+        change = defs.Enc.number.handlers.change,
+        redraw = lab_comp.handlers.redraw,
+    },
+    filter = defs.Enc.number.filter
 }
 
 return Text

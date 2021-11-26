@@ -53,6 +53,7 @@ end
 --contained, fmt, size, hargs
 
 local filter = function(self, args) -- args = { n, d }
+    args = args or { 0, 0 }
     local sens = self.p_.sens or 1
     local n, d = args[1], args[2] * sens
 

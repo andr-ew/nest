@@ -59,7 +59,7 @@ nest.render_error = function(name)
     print('render error', name)
 end
 
-function nest.handle_input(device, handler, props, data, hargs, on_update)
+function nest.handle_input(device_redraw, handler, props, data, hargs, on_update)
     --TODO: pass handler, props, hargs, on_update to active observers
         
     local aargs = table.pack(handler(table.unpack(hargs)))
@@ -67,7 +67,7 @@ function nest.handle_input(device, handler, props, data, hargs, on_update)
     local function action()
         local v = props.action and props.action(table.unpack(aargs)) or aargs[1]
 
-        nest.dirty[device] = true
+        nest.dirty[device_redraw] = true
         
         if(props.state and props.state[2]) then
             --TODO: throw helpful error if state[2] is not a function
@@ -186,7 +186,7 @@ nest.define_group_def = function(defgrp)
                             p_ = setmetatable({}, {
                                 __index = function(t, k)
                                     if type(props[k]) == 'function' then
-                                        return props[k](st[1])
+                                        return props[k](st[1], props, data)
                                     else
                                         return props[k]
                                     end
@@ -261,7 +261,7 @@ nest.define_group_def = function(defgrp)
                                     for i,v in pairs(hargs) do shargs[i+1] = v end
 
                                     nest.handle_input(
-                                        def.device_input,
+                                        def.device_redraw,
                                         def.handlers.input[fmt], 
                                         props, 
                                         data, 
