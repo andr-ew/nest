@@ -28,6 +28,24 @@ nest.connect_key = function(loop)
     end
 end
 
+nest.connect_screen = function(loop, fps)
+    local _, redraw_flags, begin_loop = nest.define_connection{
+        device_name = 'screen',
+        fps = fps
+    }
+
+    redraw = function()
+        screen.clear()
+
+        redraw_flags()
+        loop()
+
+        screen.update()
+    end
+
+    begin_loop(redraw)
+end
+
 -- nest.handle_input.key = function(...)
 --     nest.handle_input.device('key', ...)
 -- end

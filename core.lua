@@ -103,6 +103,7 @@ nest.define_group_def = function(defgrp)
     defgrp.device_input = defgrp.device_input or nil
     defgrp.device_redraw = defgrp.device_redraw or nil
     defgrp.default_props = defgrp.default_props or {}
+    defgrp.handlers = defgrp.handlers or {}
     defgrp.filter = defgrp.filter or function() end
 
     nest.defs[defgrp.name] = {}
@@ -111,7 +112,7 @@ nest.define_group_def = function(defgrp)
         def.name = def.name or ''
         def.init = def.init or function(format, data) end
         def.default_props = def.default_props or {}
-        def.handlers = def.handlers or {}
+        def.handlers = def.handlers or defgrp.handlers
         def.filter = def.filter or defgrp.filter
         def.device_input = def.device_input or defgrp.device_input or nil
         def.device_redraw = def.device_redraw or defgrp.device_redraw or nil
@@ -164,14 +165,35 @@ nest.define_group_def = function(defgrp)
 
                         setmetatable(props, { __index = def.default_props })
 
+                        local function gst()
+                            if 
+                                props.state 
+                                and type(props.state) == 'table' 
+                                and props.state[1]
+                            then 
+                                return { props.state[1], props.state[2] or function() end }
+                            elseif props.state then
+                                return { props.state, function(v) end }
+                            else
+                                return { data.value, function(v) data.value = v end }
+                            end
+                        end
+                        
+                        local st = gst()
+
                         -- proxy for props & data for backwards compatability with routines/
                         local s = setmetatable({
-                            --TODO: allow function props (mostly for backwards compatability)
                             p_ = setmetatable({}, {
-                                __index = props,
+                                __index = function(t, k)
+                                    if type(props[k]) == 'function' then
+                                        return props[k](st[1])
+                                    else
+                                        return props[k]
+                                    end
+                                end,
                                 __call = function(_, k, ...)
                                     if type(props[k]) == 'function' then
-                                        return props[k](data, ...)
+                                        return props[k](st[1], ...)
                                     else
                                         return props[k]
                                     end
@@ -198,13 +220,6 @@ nest.define_group_def = function(defgrp)
                             __index = data,
                             __newindex = data,
                         })
-
-                        local st = {}
-                        if props.state and props.state[1] then 
-                            st = props.state
-                        else
-                            st = { data.value, function(v) data.value = v end }
-                        end
 
                         local contained, fmt, size, hargs = def.filter(
                             s, 
@@ -235,11 +250,7 @@ nest.define_group_def = function(defgrp)
                                 def.init(fmt, size, st, data, props)
                             end
 
-                            if props.state and props.state[1] then 
-                                props.v = props.state[1]
-                            else
-                                props.v = data.value
-                            end
+                            props.v = gst()[1]
 
                             if 
                                 nest.loop.mode == 'input' 
