@@ -164,6 +164,44 @@ Text.enc.option = Text.define{
 
 Text.key = {}
 
+Text.key.number = Text.define{
+    name = 'key.number', 
+    device_input = 'key',
+    default_props = join(
+        lab_comp.props, 
+        defs.Key.number.default_props
+    ),
+    init = function(...) 
+        defs.Key.number.init(...)
+        lab_comp.init(...)
+    end,
+    handlers = {
+        input = defs.Key.number.handlers.input,
+        change = defs.Key.number.handlers.change,
+        redraw = lab_comp.handlers.redraw,
+    },
+    filter = defs.Key.number.filter
+}
+
+Text.key.option = Text.define{
+    name = 'key.option', 
+    device_input = 'key',
+    default_props = join(
+        opt_comp.props, 
+        defs.Key.option.default_props
+    ),
+    init = function(...) 
+        defs.Key.option.init(...)
+        opt_comp.init(...)
+    end,
+    handlers = {
+        input = defs.Key.option.handlers.input,
+        change = defs.Key.option.handlers.change,
+        redraw = opt_comp.handlers.redraw,
+    },
+    filter = defs.Key.option.filter
+}
+
 local bin_comp = {
     props = {
         lvl = { 4, 15 },
