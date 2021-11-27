@@ -182,6 +182,8 @@ nest.define_group_def = function(defgrp)
                         local st = gst()
 
                         -- proxy for props & data for backwards compatability with routines/
+                        
+                        --TODO: lvl nickname
                         local s = setmetatable({
                             p_ = setmetatable({}, {
                                 __index = function(t, k)
@@ -250,7 +252,9 @@ nest.define_group_def = function(defgrp)
                                 def.init(fmt, size, st, data, props)
                             end
 
-                            props.v = gst()[1]
+                            local sst = gst()
+                            props.v = sst[1]
+                            data.state = sst
 
                             if 
                                 nest.loop.mode == 'input' 

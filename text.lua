@@ -15,6 +15,8 @@ Text.define = nest.define_group_def{
     name = 'Text',
     device_redraw = 'screen',
     default_props = {
+        n = 2,
+        edge = rising,
         aa = 0,
         font_face = 1,
         font_size = 8,
@@ -160,6 +162,95 @@ Text.enc.option = Text.define{
 
 --TODO: Text.enc.list ?
 
+Text.key = {}
 
+local bin_comp = {
+    props = {
+        lvl = { 4, 15 },
+        selected = function(v) 
+            if type(v) == 'table' then
+                local ret = {}
+                for i,vv in ipairs(v) do
+                    if vv > 0 then ret[#ret + 1] = i end
+                end
+                return ret
+            else return v or 0 end
+        end
+    },
+    init = function(format, size, state, data, props) 
+        data.txt = function(s) return s.p_.label or '.' end
+    end,
+    handlers = handlers
+}
+
+Text.key.momentary = Text.define{
+    name = 'key.momentary', 
+    device_input = 'key',
+    default_props = join(
+        bin_comp.props, 
+        defs.Key.momentary.default_props
+    ),
+    init = function(...) 
+        defs.Key.momentary.init(...)
+        bin_comp.init(...)
+    end,
+    handlers = {
+        input = defs.Key.momentary.handlers.input,
+        change = defs.Key.momentary.handlers.change,
+        redraw = bin_comp.handlers.redraw,
+    },
+    filter = defs.Key.momentary.filter
+}
+
+Text.key.toggle = Text.define{
+    name = 'key.toggle', 
+    device_input = 'key',
+    default_props = join(
+        defs.Key.toggle.default_props,
+        bin_comp.props
+    ),
+    init = function(...) 
+        defs.Key.toggle.init(...)
+        bin_comp.init(...)
+    end,
+    handlers = {
+        input = defs.Key.toggle.handlers.input,
+        change = defs.Key.toggle.handlers.change,
+        redraw = bin_comp.handlers.redraw,
+    },
+    filter = defs.Key.toggle.filter
+}
+
+local trig_change = function(s)
+    clock.run(function()
+        clock.sleep(s.p_.blinktime)
+        if type(s.p_.n) == 'table' then
+            for i,v in ipairs(s.p_.v) do
+                s.p_.v[i] = 0
+            end
+        else s.state[2](0) end
+
+        s.devs.screen.dirty = true
+    end)
+end
+
+Text.key.trigger = Text.define{
+    name = 'key.trigger', 
+    device_input = 'key',
+    default_props = join(
+        defs.Key.trigger.default_props,
+        bin_comp.props
+    ),
+    init = function(...) 
+        defs.Key.trigger.init(...)
+        bin_comp.init(...)
+    end,
+    handlers = {
+        input = defs.Key.trigger.handlers.input,
+        redraw = bin_comp.handlers.redraw,
+        change = { point = trig_change, line = trig_change }
+    },
+    filter = defs.Key.trigger.filter
+}
 
 return Text
