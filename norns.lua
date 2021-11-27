@@ -141,7 +141,8 @@ Enc.control = Enc.define{
 Enc.option = Enc.define{
     name = 'option',
     default_props = {
-        wrap = false
+        wrap = false,
+        sens = 0.5,
     },
     init = function(format, size, state, data) 
         --TODO: check for correct format before overwriting value
