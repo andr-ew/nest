@@ -114,7 +114,7 @@ local function redrawfilter(s)
 end
 
 _grid.muxaffordance.output.redraw = function(s, v, g)
-    return s.muxredraw[redrawfilter(s)](s, g, v)
+    return s.muxredraw[redrawfilter(s)](s, v, g)
 end
 
 _grid.binary = _grid.muxaffordance:new({ count = nil, fingers = nil }) -- local supertype for binary, toggle, trigger
