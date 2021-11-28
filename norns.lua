@@ -2,14 +2,14 @@ local rout = include 'lib/nest/routines/norns'
 
 local Key, Enc = {}, {}
 
-nest.connect_enc = function(loop)
+nest.connect_enc = function(render)
     local input_flags = nest.define_connection{
         device_name = 'enc'
     }
 
     enc = function(n, d)
         input_flags(n, d)
-        loop()
+        render()
     end
 end
 
@@ -17,19 +17,19 @@ end
 --     nest.handle_input.device('enc', ...)
 -- end
 
-nest.connect_key = function(loop)
+nest.connect_key = function(render)
     local input_flags = nest.define_connection{
         device_name = 'key'
     }
 
     key = function(n, z)
         input_flags(n, z)
-        loop()
+        render()
     end
 end
 
-nest.connect_screen = function(loop, fps)
-    local _, redraw_flags, begin_loop = nest.define_connection{
+nest.connect_screen = function(render, fps)
+    local _, redraw_flags, begin_render = nest.define_connection{
         device_name = 'screen',
         fps = fps
     }
@@ -38,12 +38,12 @@ nest.connect_screen = function(loop, fps)
         screen.clear()
 
         redraw_flags()
-        loop()
+        render()
 
         screen.update()
     end
 
-    begin_loop(redraw)
+    begin_render(redraw)
 end
 
 -- nest.handle_input.key = function(...)

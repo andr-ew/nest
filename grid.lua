@@ -2,11 +2,11 @@ local rout = include 'lib/nest/routines/grid'
 
 local Grid = {}
 
-nest.connect_grid = function(loop, g, fps)
+nest.connect_grid = function(render, g, fps)
     local 
         input_flags, 
         redraw_flags, 
-        begin_loop 
+        begin_render 
     = nest.define_connection{
         device_name = 'grid',
         device = g,
@@ -15,19 +15,19 @@ nest.connect_grid = function(loop, g, fps)
 
     g.key = function(x, y, z)
         input_flags(x, y, z)
-        loop()
+        render()
     end
 
     local redraw_grid = function()
         g:all(0)
 
         redraw_flags()
-        loop()
+        render()
 
         g:refresh()
     end
 
-    begin_loop(redraw_grid)
+    begin_render(redraw_grid)
 
     return redraw_grid
 end

@@ -1,5 +1,5 @@
 nest = {
-    loop = {
+    render = {
         args = {},
         device = nil,
         device_name = nil,
@@ -22,21 +22,21 @@ nest.define_connection = function(def)
     def.fps = def.fps or 30
 
     local redraw_flags = function()
-        nest.loop.args = nil
-        nest.loop.device_name = def.device_name
-        nest.loop.device = def.device
-        nest.loop.mode = 'redraw'
+        nest.render.args = nil
+        nest.render.device_name = def.device_name
+        nest.render.device = def.device
+        nest.render.mode = 'redraw'
     end
     
     local input_flags = function(...)
-        nest.loop.args = { ... }
-        nest.loop.device_name = def.device_name
-        nest.loop.device = def.device
-        nest.loop.mode = 'input'
+        nest.render.args = { ... }
+        nest.render.device_name = def.device_name
+        nest.render.device = def.device
+        nest.render.mode = 'input'
     end
 
-    local begin_loop = function(redraw_device)
-        nest.loop.started[def.device_name] = true
+    local begin_render = function(redraw_device)
+        nest.render.started[def.device_name] = true
         local fps = def.fps
         local cl = clock.run(function()
             while true do
@@ -49,7 +49,7 @@ nest.define_connection = function(def)
         end)
     end
 
-    return input_flags, redraw_flags, begin_loop
+    return input_flags, redraw_flags, begin_render
 end
 
 nest.constructor_error = function(name)
@@ -105,12 +105,13 @@ nest.define_group_def = function(defgrp)
     defgrp.default_props = defgrp.default_props or {}
     defgrp.handlers = defgrp.handlers or {}
     defgrp.filter = defgrp.filter or function() end
+    defgrp.init = defgrp.init or function(format, data) end
 
     nest.defs[defgrp.name] = {}
 
     return function(def)
         def.name = def.name or ''
-        def.init = def.init or function(format, data) end
+        def.init = def.init or defgrp.init
         def.default_props = def.default_props or {}
         def.handlers = def.handlers or defgrp.handlers
         def.filter = def.filter or defgrp.filter
@@ -121,8 +122,8 @@ nest.define_group_def = function(defgrp)
 
         return function(state)
             if
-                (not nest.loop.started[def.device_input])
-                and (not nest.loop.started[def.device_redraw])
+                (not nest.render.started[def.device_input])
+                and (not nest.render.started[def.device_redraw])
             then
                 -- state = state or 0
 
@@ -159,8 +160,8 @@ nest.define_group_def = function(defgrp)
 
                 return function(props)
                     if 
-                        nest.loop.device_name == def.device_input 
-                        or nest.loop.device_name == def.device_redraw 
+                        nest.render.device_name == def.device_input 
+                        or nest.render.device_name == def.device_redraw 
                     then
 
                         setmetatable(props, { __index = def.default_props })
@@ -225,9 +226,9 @@ nest.define_group_def = function(defgrp)
 
                         local contained, fmt, size, hargs = def.filter(
                             s, 
-                            nest.loop.args
+                            nest.render.args
                             -- [
-                            --     nest.loop.mode == 'input' 
+                            --     nest.render.mode == 'input' 
                             --     and def.device_input 
                             --     or def.device_redraw
                             -- ]
@@ -257,8 +258,8 @@ nest.define_group_def = function(defgrp)
                             data.state = sst
 
                             if 
-                                nest.loop.mode == 'input' 
-                                and nest.loop.device_name == def.device_input 
+                                nest.render.mode == 'input' 
+                                and nest.render.device_name == def.device_input 
                             then
                                 if contained then
                                     local shargs = { s }
@@ -276,22 +277,22 @@ nest.define_group_def = function(defgrp)
                                     )
                                 end
                             elseif 
-                                nest.loop.mode == 'redraw'
-                                and nest.loop.device_name == def.device_redraw
+                                nest.render.mode == 'redraw'
+                                and nest.render.device_name == def.device_redraw
                             then
                                 def.handlers.redraw[fmt](
                                     s, 
-                                    nest.loop.device, 
-                                    props.v
+                                    props.v,
+                                    nest.render.device
                                 )
 
                             elseif  
                                 (
                                     def.device_input 
-                                    and not nest.loop.started[def.device_input]
+                                    and not nest.render.started[def.device_input]
                                 ) or (
                                     def.device_redraw 
-                                    and not nest.loop.started[def.device_redraw]
+                                    and not nest.render.started[def.device_redraw]
                                 )
                             then 
                                 nest.render_error(defgrp.name..'.'..def.name..'()') 
