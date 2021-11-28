@@ -67,7 +67,7 @@ function nest.handle_input(device_redraw, handler, props, data, hargs, on_update
     local function action()
         local v = props.action and props.action(table.unpack(aargs)) or aargs[1]
 
-        nest.dirty[device_redraw] = true
+        if device_redraw then nest.dirty[device_redraw] = true end
         
         if(props.state and props.state[2]) then
             --TODO: throw helpful error if state[2] is not a function
