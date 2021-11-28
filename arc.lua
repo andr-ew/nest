@@ -1,4 +1,4 @@
-local rout = include 'lib/nest/routines/grid'
+local rout = include 'lib/nest/routines/arc'
 
 _arc = _group:new()
 _arc.devk = 'a'
@@ -105,7 +105,7 @@ _arc.key.trigger = _arc.key.affordance:new()
 _arc.key.trigger.input.handler = rout.key.trigger.input.point
 
 _arc.key.toggle = _arc.key.affordance:new()
-_arc.key.toggle.input.handler = rout.ket.toggle.input.point
+_arc.key.toggle.input.handler = rout.key.toggle.input.point
 
 -------------------------------------BINDERS----------------------------------------------
 
