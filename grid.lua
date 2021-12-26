@@ -117,10 +117,19 @@ local function fill(format, size, n)
     return ret
 end
 
+local function formatted_binary(format, state)
+    if format=='plane' then
+        return type(state[1]) == 'table' and type(state[1][next(state[1])]) == 'table'
+    elseif format=='line_x' or format=='line_y' then
+         return type(state[1]) == 'table'
+    elseif format=='point' then 
+        return type(state[1]) == 'number'
+    end
+end
+
 local init_binary = function(format, size, state, o)
 
-    --TODO: check for correct format before overwriting value
-    state[2](fill(format, size, 0))
+    if not formatted_binary(format, state) then state[2](fill(format, size, 0)) end
     
     o.list = {}
     o.held = fill(format, size, 0)
@@ -185,8 +194,7 @@ Grid.fill = Grid.define{
     default_props = {},
     init = function(format, size, state, data)
 
-        --TODO: check for correct format before overwriting value
-        state[2](fill(format, size, 1))
+        if not formatted_binary(format, state) then state[2](fill(format, size, 1)) end
     end,
     handlers = rout.fill
 }
@@ -234,11 +242,20 @@ Grid.number = Grid.define{
         edge = 'rising', fingers = nil, tdown = 0, filtersame = true, count = { 1, 1 }, min = 1, max = math.huge
     },
     init = function(format, size, state, data, props)
-
-        --TODO: check for state before overwrite
+        local plane = format == 'plane' 
         local dv = props.min or 1
-        local def = format == 'plane' and { x=dv, y=dv } or dv
-        state[2](state[1] or def)
+        local def = plane and { x=dv, y=dv } or dv
+
+        if not (
+            plane 
+            and (
+                type(state[1]) == 'table'
+            ) or (
+                type(state[1]) == 'number'
+            )
+        ) then 
+            state[2](def)
+        end
 
         data.vlast = state[1] or def
         data.hlist = {}
@@ -274,11 +291,22 @@ Grid.range = Grid.define{
         edge = 'rising'
     },
     init = function(format, size, state, data, props)
-        state[2](
-            format == 'plane'
-            and { { x = 0, y = 0 }, { x = 0, y = 0 } }
-            or { 0, 0 }
-        )
+        local plane = format == 'plane' 
+
+        if not (
+            plane
+            and (
+                type(state[1]) == 'table' and type(state[1][next(state[1])]) == 'table' 
+            ) or (
+                type(state[1]) == 'table'
+            )
+        ) then
+            state[2](
+                plane
+                and { { x = 0, y = 0 }, { x = 0, y = 0 } }
+                or { 0, 0 }
+            )
+        end
         
         data.hlist = {}
         data.tdown = 0
@@ -286,6 +314,6 @@ Grid.range = Grid.define{
     handlers = rout.range
 }
 
---TODO: Grid.pattern
+--TODO: Grid.pattern (in 'lib/nest/shared/pattern_time/grid')
 
 return Grid
