@@ -28,6 +28,7 @@ nest.connect_key = function(render)
     end
 end
 
+--TODO: (all connect functions) check for render, if absent, reminder to return a function from App
 nest.connect_screen = function(render, fps)
     local _, redraw_flags, begin_render = nest.define_connection{
         device_name = 'screen',
@@ -95,6 +96,14 @@ Enc.delta = Enc.define{
     handlers = rout.enc.delta.input
 }
 
+local function formatted(format, state)
+    if format=='line' then
+        return type(state[1]) == 'table'
+    else
+        return type(state[1]) == 'number'
+    end
+end
+
 local function fill(format, size, n)
     if format=='line' then
         local ret = {}
@@ -116,8 +125,7 @@ Enc.number = Enc.define{
         wrap = false
     },
     init = function(format, size, state, data, props) 
-        --TODO: check for correct format before overwriting value
-        state[2](fill(format, size, props.min))
+        if not formatted(format, state) then state[2](fill(format, size, props.min)) end
     end,
     handlers = rout.enc.number
 }
@@ -132,8 +140,7 @@ Enc.control = Enc.define{
     init = function(format, size, state, data, props) 
         local dv = props.controlspec.default or props.controlspec.minval
 
-        --TODO: check for correct format before overwriting value
-        state[2](fill(format, size, dv))
+        if not formatted(format, state) then state[2](fill(format, size, dv)) end
     end,
     handlers = rout.enc.control
 }
@@ -145,8 +152,7 @@ Enc.option = Enc.define{
         sens = 0.5,
     },
     init = function(format, size, state, data) 
-        --TODO: check for correct format before overwriting value
-        state[2](fill_option(format, size, 1))
+        if not formatted(format, state) then state[2](fill_option(format, size, 1)) end
     end,
     handlers = rout.enc.option
 }
@@ -160,8 +166,7 @@ Key.number = Key.define{
         edge = 'rising',
     },
     init = function(format, size, state, data, props) 
-        --TODO: check for state before overwrite
-        state[2](0)
+        if not formatted(format, state) then state[2](0) end
 
         data.tdown = 0
     end,
@@ -176,8 +181,7 @@ Key.option = Key.define{
         edge = 'rising',
     },
     init = function(format, size, state, data, props)
-        --TODO: check for state before overwrite
-        state[2](1)
+        if not formatted(format, state) then state[2](1) end
 
         data.tdown = 0
     end,
@@ -186,8 +190,7 @@ Key.option = Key.define{
 
 local init_binary = function(format, size, state, o)
 
-    --TODO: check for correct format before overwriting value
-    state[2](fill(format, size, 0))
+    if not formatted(format, state) then state[2](fill(format, size, 0)) end
     
     --TODO: impliment level clocks
     -- o.list = {}
