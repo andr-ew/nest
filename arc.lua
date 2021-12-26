@@ -66,8 +66,7 @@ Arc.define = nest.define_group_def{
     },
     filter = filter,
     init = function(format, size, state, data, props) 
-        --TODO: check for state before overwrite
-        state[2](0)
+        if type(state[1]) ~= 'number' then state[2](0) end
     end,
 }
 
@@ -120,8 +119,7 @@ Arc.option = Arc.define{
     },
     handlers = rout.option,
     init = function(format, size, state, data, props) 
-        --TODO: check for state before overwrite
-        state[2](1)
+        if type(state[1]) ~= 'number' then state[2](1) end
     end,
 }
 
@@ -138,8 +136,7 @@ Arc.key.define = nest.define_group_def{
     },
     filter = filter,
     init = function(format, size, state, data, props) 
-        --TODO: check for state before overwrite
-        state[2](0)
+        if type(state[1]) ~= 'number' then state[2](0) end
         data.tdown = 0
     end,
 }
