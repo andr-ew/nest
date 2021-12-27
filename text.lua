@@ -33,7 +33,7 @@ Text.define = nest.define_group_def{
         line_wrap = nil,
         font_headroom = 3/8,
         font_leftroom = 1/16,
-        formatter = function(s, ...) return ... end,
+        formatter = function(...) return ... end,
         scroll_window = nil, -- 6
         scroll_focus = nil, -- 3 or { 1, 6 }
         selection = nil -- 1 or { 1, 2 } or { x = 1, y = 2 }, or { { x = 1, y = 2 }, x = 3, y = 4 } }
@@ -62,16 +62,16 @@ local lab_comp = {
         margin = 5
     },
     init = function(format, size, state, data, props) 
-        data.formatter = function(s, ...) return ... end
+        -- data.formatter = function(...) return ... end
         data.txt = function(s) 
             local step = s.p_.controlspec and s.p_.controlspec.step or s.p_.step
             if s.p_.label then 
                 if type(s.p_.v) == 'table' then
                     local vround = {}
                     for i,v in ipairs(s.p_.v) do vround[i] = util.round(v, step) end
-                    return { s.p_.label, s:formatter(table.unpack(vround)) }
-                else return { s.p_.label, s:formatter(util.round(s.p_.v, step)) } end
-            else return s:formatter(util.round(s.p_.v, step)) end
+                    return { s.p_.label, props.formatter(table.unpack(vround)) }
+                else return { s.p_.label, props.formatter(util.round(s.p_.v, step)) } end
+            else return props.formatter(util.round(s.p_.v, step)) end
         end
     end,
     handlers = handlers
