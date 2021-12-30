@@ -64,7 +64,7 @@ local lab_comp = {
     init = function(format, size, state, data, props) 
         -- data.formatter = function(...) return ... end
         data.txt = function(s) 
-            local step = s.p_.controlspec and s.p_.controlspec.step or s.p_.step
+            local step = s.p_.step or s.p_.controlspec and s.p_.controlspec.step
             if s.p_.label then 
                 if type(s.p_.v) == 'table' then
                     local vround = {}
