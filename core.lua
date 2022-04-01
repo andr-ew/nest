@@ -65,15 +65,13 @@ function nest.handle_input(device_redraw, handler, props, data, hargs, on_update
     local aargs = table.pack(handler(table.unpack(hargs)))
     
     local function action()
-        local v = props.action and props.action(table.unpack(aargs)) or aargs[1]
-
         if device_redraw then nest.dirty[device_redraw] = true end
         
         if(props.state and props.state[2]) then
             --TODO: throw helpful error if state[2] is not a function
-            aargs[1] = v
-            props.state[2](table.unpack(aargs))
+            props.state[2](aargs[1])
         else
+            local v = props.action and props.action(table.unpack(aargs)) or aargs[1]
             data.value = v
         end
         
@@ -120,17 +118,30 @@ nest.define_group_def = function(defgrp)
 
         nest.defs[defgrp.name][def.name] = def
 
-        return function(state)
+        return function(cprops, state)
             if
                 (not nest.render.started[def.device_input])
                 and (not nest.render.started[def.device_redraw])
             then
                 -- state = state or 0
 
+                cprops = cprops or {}
+
                 setmetatable(def.default_props, { __index = defgrp.default_props })
+                setmetatable(cprops, { __index = def.default_props })
+
+                if cprops.state then
+                    if 
+                        type(cprops.state) == 'table' and type(cprops.state[1]) == 'function' 
+                    then
+                    elseif type(cprops.state) == 'function' then
+                    else
+                        print(defgrp.name..'.'..def.name..'()'..': when passing state to a component as an argument, state[1] must be a function')
+                    end
+                end
 
                 local data = { 
-                    clock = true,
+                    clock = false,
                 } 
 
                 local handlers_blank = {
@@ -164,7 +175,7 @@ nest.define_group_def = function(defgrp)
                         or nest.render.device_name == def.device_redraw 
                     then
 
-                        setmetatable(props, { __index = def.default_props })
+                        setmetatable(props, { __index = cprops })
 
                         local function gst()
                             if 
@@ -172,9 +183,19 @@ nest.define_group_def = function(defgrp)
                                 and type(props.state) == 'table' 
                                 and props.state[1]
                             then 
-                                return { props.state[1], props.state[2] or function() end }
+                                return { 
+                                    type(props.state[1]) == 'function' 
+                                        and props.state[1]()
+                                        or props.state[1], 
+                                    props.state[2] or function() end 
+                                }
                             elseif props.state then
-                                return { props.state, function(v) end }
+                                return { 
+                                    type(props.state) == 'function' 
+                                        and props.state()
+                                        or props.state, 
+                                    function(v) end 
+                                }
                             else
                                 return { data.value, function(v) data.value = v end }
                             end
