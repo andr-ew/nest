@@ -1,3 +1,3 @@
 -- shortcut to the file in the multipattern/ dir
 
-return (include 'lib/nest/util/multipattern/multipattern')
+return (include 'lib/nest/util/pattern-tools/multipattern')
