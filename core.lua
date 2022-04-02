@@ -16,6 +16,31 @@ nest = {
     defs = {},
 }
 
+for _, dev in ipairs{ 'key', 'enc', 'screen', 'grid', 'arc' } do
+    nest[dev] = {}
+    nest[dev].is_constructing = function()
+        return not nest.render.started[dev]
+    end
+end
+for _, dev in ipairs{ 'key', 'enc', 'grid', 'arc' } do
+    nest[dev].has_input = function()
+        return nest.render.mode == 'input' and nest.render.device_name == dev
+    end
+    nest[dev].input_args = function()
+        if nest[dev].has_input() then
+            return table.unpack(nest.render.args)
+        end
+    end
+end
+for _, dev in ipairs{ 'screen', 'grid', 'arc' } do
+    nest[dev].is_drawing = function()
+        return nest.render.mode == 'redraw' and nest.render.device_name == dev
+    end
+    nest[dev].make_dirty = function()
+        return nest.dirty[dev] = true
+    end
+end
+
 nest.define_connection = function(def)
     def.device_name = def.device_name or ''
     def.device = def.device or nil
