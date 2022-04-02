@@ -1,3 +1,4 @@
+--TODO: support multiple grids/arcs
 nest = {
     render = {
         args = {},
@@ -37,7 +38,7 @@ for _, dev in ipairs{ 'screen', 'grid', 'arc' } do
         return nest.render.mode == 'redraw' and nest.render.device_name == dev
     end
     nest[dev].make_dirty = function()
-        return nest.dirty[dev] = true
+        nest.dirty[dev] = true
     end
 end
 
