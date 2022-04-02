@@ -125,13 +125,11 @@ nest.define_group_def = function(defgrp)
 
         nest.defs[defgrp.name][def.name] = def
 
-        return function(default_props, state)
+        return function(default_props)
             if
                 (not nest.render.started[def.device_input])
                 and (not nest.render.started[def.device_redraw])
             then
-                -- state = state or 0
-
                 default_props = default_props or {}
 
                 setmetatable(def.default_props, { __index = defgrp.default_props })
@@ -176,7 +174,7 @@ nest.define_group_def = function(defgrp)
                 }
                 setmetatable(def.handlers, { __index = handlers_blank })
 
-                -- proxy for props & data for backwards compatability with routines/
+                -- create a proxy for props & data for backwards compatability with routines/
                 local function make_s(pprops)
                     --TODO: lvl nickname
                     return setmetatable({
@@ -219,6 +217,7 @@ nest.define_group_def = function(defgrp)
                     })
                 end
 
+                -- get a current state & state setter depending on circumstances
                 local function gst(pprops)
                     if 
                         pprops.state 
