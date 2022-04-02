@@ -136,6 +136,7 @@ nest.define_group_def = function(defgrp)
                     print('nest: the first argument to a library component constructor must be a function returning the props table')
                 end
 
+                --TODO: clock becomes prop
                 local data = { 
                     clock = false,
                 } 
@@ -278,7 +279,8 @@ nest.define_group_def = function(defgrp)
                         )
                     end
                 end
-                
+               
+                -- to function: second return value to send raw input into the component
                 local to_input = (type(fprops) == 'function') and function(rargs)
                     local props = fprops() or {}
                     setmetatable(props, { __index = def.default_props })
