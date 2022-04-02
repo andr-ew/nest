@@ -61,10 +61,8 @@ end
 
 --TODO: this no longer needs to be a global function. refactor it into define_group_def
 function nest.handle_input(device_redraw, handler, props, data, s, hargs, on_update)
-    local shargs = { s }
-    for i,v in pairs(hargs) do shargs[i+1] = v end
 
-    local aargs = table.pack(handler(table.unpack(shargs)))
+    local aargs = table.pack(handler(s, table.unpack(hargs)))
     
     local function action()
         if device_redraw then nest.dirty[device_redraw] = true end
@@ -74,15 +72,21 @@ function nest.handle_input(device_redraw, handler, props, data, s, hargs, on_upd
                 print('nest: since the state[2] prop has been provided, the provided action prop will not be run. please use one prop or the other, not both')
             end
 
+            local v = aargs[1]
+
             if type(props.state[2]) == 'function' then
-                props.state[2](aargs[1])
-            else print('nest: the second item in the state prop table must be a function!')
+                props.state[2](v)
+            else 
+                print('nest: the second item in the state prop table must be a function!')
+            end
+            
+            if(on_update) then on_update(props, data, v, hargs) end
         else
             local v = props.action and props.action(table.unpack(aargs)) or aargs[1]
             data.value = v
-        end
         
-        if(on_update) then on_update(props, data, v, shargs) end
+            if(on_update) then on_update(props, data, v, hargs) end
+        end
     end
 
     if aargs and aargs[1] then
@@ -231,7 +235,7 @@ nest.define_group_def = function(defgrp)
                 end
 
                 --(re)initialize data dynamically
-                function check_init(ffmt, ssize, sst, pprops)
+                local function check_init(ffmt, ssize, sst, pprops)
                     if
                         ffmt ~= data.format
                         or (
@@ -246,7 +250,7 @@ nest.define_group_def = function(defgrp)
                         data.format = ffmt
                         data.size = ssize
 
-                        def.init(ffmt, ssize, sst, data, pprops)
+                        def.init(data.format, data.size, sst, data, pprops)
                     end
                 end
 
@@ -259,9 +263,11 @@ nest.define_group_def = function(defgrp)
                         s, 
                         rargs
                     )
+
                     check_init(fmt, size, st, props)
 
                     local sst = gst(props)
+                    props.v = sst[1]
                     data.state = sst
 
                     if contained then
@@ -274,18 +280,18 @@ nest.define_group_def = function(defgrp)
                             hargs,
                             def.handlers.change 
                                 and function(props, data, value)
-                                    def.handlers.change[fmt](ds, value)
+                                    def.handlers.change[fmt](s, value)
                                 end
                         )
                     end
                 end
                
                 -- to function: second return value to send raw input into the component
-                local to_input = (type(fprops) == 'function') and function(rargs)
+                local to_input = (type(fprops) == 'function') and function(...)
                     local props = fprops() or {}
                     setmetatable(props, { __index = def.default_props })
                                 
-                    process_input(props, rargs)
+                    process_input(props, { ... })
                 end
 
                 return
@@ -306,9 +312,11 @@ nest.define_group_def = function(defgrp)
                                 and nest.render.device_name == def.device_input 
                             then
                                 if type(fprops) == 'function' then
+
                                     --set input to the to_ function by default
                                     props.input = props.input or to_input
-                                    props.input(nest.render.args)
+
+                                    props.input(table.unpack(nest.render.args))
                                 else
                                     process_input(props, nest.render.args)
                                 end
