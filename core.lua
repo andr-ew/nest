@@ -59,23 +59,30 @@ nest.render_error = function(name)
     print('render error', name)
 end
 
-function nest.handle_input(device_redraw, handler, props, data, hargs, on_update)
-    --TODO: pass handler, props, hargs, on_update to active observers
-        
-    local aargs = table.pack(handler(table.unpack(hargs)))
+--TODO: this no longer needs to be a global function. refactor it into define_group_def
+function nest.handle_input(device_redraw, handler, props, data, s, hargs, on_update)
+    local shargs = { s }
+    for i,v in pairs(hargs) do shargs[i+1] = v end
+
+    local aargs = table.pack(handler(table.unpack(shargs)))
     
     local function action()
         if device_redraw then nest.dirty[device_redraw] = true end
         
-        if(props.state and props.state[2]) then
-            --TODO: throw helpful error if state[2] is not a function
-            props.state[2](aargs[1])
+        if props.state and props.state[2] then
+            if props.action then
+                print('nest: since the state[2] prop has been provided, the provided action prop will not be run. please use one prop or the other, not both')
+            end
+
+            if type(props.state[2]) == 'function' then
+                props.state[2](aargs[1])
+            else print('nest: the second item in the state prop table must be a function!')
         else
             local v = props.action and props.action(table.unpack(aargs)) or aargs[1]
             data.value = v
         end
         
-        if(on_update) then on_update(props, data, v, hargs) end
+        if(on_update) then on_update(props, data, v, shargs) end
     end
 
     if aargs and aargs[1] then
@@ -118,23 +125,23 @@ nest.define_group_def = function(defgrp)
 
         nest.defs[defgrp.name][def.name] = def
 
-        return function(cprops, state)
+        return function(default_props, state)
             if
                 (not nest.render.started[def.device_input])
                 and (not nest.render.started[def.device_redraw])
             then
                 -- state = state or 0
 
-                cprops = cprops or {}
+                default_props = default_props or {}
 
                 setmetatable(def.default_props, { __index = defgrp.default_props })
-                setmetatable(cprops, { __index = def.default_props })
+                setmetatable(default_props, { __index = def.default_props })
 
-                if cprops.state then
+                if default_props.state then
                     if 
-                        type(cprops.state) == 'table' and type(cprops.state[1]) == 'function' 
+                        type(default_props.state) == 'table' and type(default_props.state[1]) == 'function' 
                     then
-                    elseif type(cprops.state) == 'function' then
+                    elseif type(default_props.state) == 'function' then
                     else
                         print(defgrp.name..'.'..def.name..'()'..': when passing state to a component as an argument, state[1] must be a function')
                     end
@@ -169,144 +176,189 @@ nest.define_group_def = function(defgrp)
                 }
                 setmetatable(def.handlers, { __index = handlers_blank })
 
-                return function(props)
-                    if 
-                        nest.render.device_name == def.device_input 
-                        or nest.render.device_name == def.device_redraw 
-                    then
-
-                        setmetatable(props, { __index = cprops })
-
-                        local function gst()
-                            if 
-                                props.state 
-                                and type(props.state) == 'table' 
-                                and props.state[1]
-                            then 
-                                return { 
-                                    type(props.state[1]) == 'function' 
-                                        and props.state[1]()
-                                        or props.state[1], 
-                                    props.state[2] or function() end 
-                                }
-                            elseif props.state then
-                                return { 
-                                    type(props.state) == 'function' 
-                                        and props.state()
-                                        or props.state, 
-                                    function(v) end 
-                                }
-                            else
-                                return { data.value, function(v) data.value = v end }
-                            end
-                        end
-                        
-                        local st = gst()
-
-                        -- proxy for props & data for backwards compatability with routines/
-                        
-                        --TODO: lvl nickname
-                        local s = setmetatable({
-                            p_ = setmetatable({}, {
-                                __index = function(t, k)
-                                    if type(props[k]) == 'function' then
-                                        return props[k](st[1], props, data)
-                                    else
-                                        return props[k]
-                                    end
-                                end,
-                                __call = function(_, k, ...)
-                                    if type(props[k]) == 'function' then
-                                        return props[k](st[1], ...)
-                                    else
-                                        return props[k]
-                                    end
+                -- proxy for props & data for backwards compatability with routines/
+                local function make_s(pprops)
+                    --TODO: lvl nickname
+                    return setmetatable({
+                        p_ = setmetatable({}, {
+                            __index = function(t, k)
+                                if type(pprops[k]) == 'function' then
+                                    return pprops[k](st[1], pprops, data)
+                                else
+                                    return pprops[k]
                                 end
-                            }),
-                            replace = function(s, k, v)
-                                data[k] = v
                             end,
-                            devs = def.device_redraw and {
-                                [devk[def.device_redraw]] = setmetatable({}, {
-                                    __index = function(t, k)
-                                        if k=='dirty' then 
-                                            return nest.dirty[def.device_redraw]
-                                        else return rawget(t, k) end
-                                    end,
-                                    __newindex = function(t, k, v)
-                                        if k=='dirty' then
-                                            nest.dirty[def.device_redraw] = v
-                                        else rawset(t,k,v) end
-                                    end,
-                                }),
-                            },
-                        }, {
-                            __index = data,
-                            __newindex = data,
-                        })
-
-                        local contained, fmt, size, hargs = def.filter(
-                            s, 
-                            nest.render.args
-                            -- [
-                            --     nest.render.mode == 'input' 
-                            --     and def.device_input 
-                            --     or def.device_redraw
-                            -- ]
-                        )
-
-                        if fmt then
-                            --(re)initialize data dynamically
-                            if
-                                fmt ~= data.format
-                                or (
-                                    type(size)=='table' 
-                                    and (
-                                        size.x ~= data.size.x or size.y ~= data.size.y
-                                    ) or (
-                                        size ~= data.size
-                                    )
-                                )
-                            then
-                                data.format = fmt
-                                data.size = size
-
-                                def.init(fmt, size, st, data, props)
+                            __call = function(_, k, ...)
+                                if type(pprops[k]) == 'function' then
+                                    return pprops[k](st[1], ...)
+                                else
+                                    return pprops[k]
+                                end
                             end
+                        }),
+                        replace = function(s, k, v)
+                            data[k] = v
+                        end,
+                        devs = def.device_redraw and {
+                            [devk[def.device_redraw]] = setmetatable({}, {
+                                __index = function(t, k)
+                                    if k=='dirty' then 
+                                        return nest.dirty[def.device_redraw]
+                                    else return rawget(t, k) end
+                                end,
+                                __newindex = function(t, k, v)
+                                    if k=='dirty' then
+                                        nest.dirty[def.device_redraw] = v
+                                    else rawset(t,k,v) end
+                                end,
+                            }),
+                        },
+                    }, {
+                        __index = data,
+                        __newindex = data,
+                    })
+                end
 
-                            local sst = gst()
-                            props.v = sst[1]
-                            data.state = sst
+                local function gst(pprops)
+                    if 
+                        pprops.state 
+                        and type(pprops.state) == 'table' 
+                        and pprops.state[1]
+                    then 
+                        return { 
+                            type(pprops.state[1]) == 'function' 
+                                and pprops.state[1]()
+                                or pprops.state[1], 
+                            pprops.state[2] or function() end 
+                        }
+                    elseif pprops.state then
+                        return { 
+                            type(pprops.state) == 'function' 
+                                and pprops.state()
+                                or pprops.state, 
+                            function(v) end 
+                        }
+                    else
+                        return { data.value, function(v) data.value = v end }
+                    end
+                end
 
+                --(re)initialize data dynamically
+                function check_init(ffmt, ssize, sst, pprops)
+                    if
+                        ffmt ~= data.format
+                        or (
+                            type(ssize)=='table' 
+                            and (
+                                ssize.x ~= data.size.x or ssize.y ~= data.size.y
+                            ) or (
+                                ssize ~= data.size
+                            )
+                        )
+                    then
+                        data.format = ffmt
+                        data.size = ssize
+
+                        def.init(ffmt, ssize, sst, data, pprops)
+                    end
+                end
+                                
+                local ds = make_s(default_props)
+
+                -- to_input default function, which is later overwritten on every input render
+                local to_input = function(rargs)
+                    local dst = gst(default_props)
+
+                    local contained, fmt, size, hargs = def.filter(
+                        ds, 
+                        rargs
+                    )
+                    check_init(fmt, size, st, default_props)
+
+                    local dsst = gst(default_props)
+                    data.state = dsst
+
+                    if contained then
+                        nest.handle_input(
+                            def.device_redraw,
+                            def.handlers.input[fmt], 
+                            default_props, 
+                            data, 
+                            ds,
+                            hargs,
+                            def.handlers.change and function(props, data, value)
+                                def.handlers.change[fmt](ds, value)
+                            end
+                        )
+                    end
+                end
+                
+                -- set input to close around to_input by default
+                default_props.input = default_props.input or function(...) to_input(...) end
+
+                return
+                    function(props)
+                        if 
+                            nest.render.device_name == def.device_input 
+                            or nest.render.device_name == def.device_redraw 
+                        then
+                            props = props or {}
+                            setmetatable(props, { __index = default_props })
+                            
+                            local st = gst(props)
+                            local s = make_s(props)
                             if 
                                 nest.render.mode == 'input' 
                                 and nest.render.device_name == def.device_input 
                             then
-                                if contained then
-                                    local shargs = { s }
-                                    for i,v in pairs(hargs) do shargs[i+1] = v end
-
-                                    nest.handle_input(
-                                        def.device_redraw,
-                                        def.handlers.input[fmt], 
-                                        props, 
-                                        data, 
-                                        shargs,
-                                        def.handlers.change and function(props, data, value)
-                                            def.handlers.change[fmt](s, value)
-                                        end
+                                -- redefine to_input every matched input render with updated upvalues
+                                to_input = function(rargs)
+                                    local contained, fmt, size, hargs = def.filter(
+                                        s, 
+                                        rargs
                                     )
+                                    check_init(fmt, size, st, props)
+
+                                    local sst = gst()
+                                    props.v = sst[1]
+                                    data.state = sst
+
+                                    if contained then
+                                        nest.handle_input(
+                                            def.device_redraw,
+                                            def.handlers.input[fmt], 
+                                            props, 
+                                            data, 
+                                            s,
+                                            hargs,
+                                            def.handlers.change 
+                                                and function(props, data, value)
+                                                    def.handlers.change[fmt](s, value)
+                                                end
+                                        )
+                                    end
                                 end
+                                
+                                props.input(nest.render.args)
                             elseif 
                                 nest.render.mode == 'redraw'
                                 and nest.render.device_name == def.device_redraw
                             then
+                                local contained, fmt, size, hargs = def.filter(
+                                    s, 
+                                    nest.render.args
+                                )
+                                check_init(fmt, size, st, props)
+
+                                local sst = gst()
+                                props.v = sst[1]
+                                data.state = sst
+
                                 def.handlers.redraw[fmt](
                                     s, 
                                     props.v,
                                     nest.render.device
                                 )
-
                             elseif  
                                 (
                                     def.device_input 
@@ -319,8 +371,11 @@ nest.define_group_def = function(defgrp)
                                 nest.render_error(defgrp.name..'.'..def.name..'()') 
                             end
                         end
-                    end
-                end
+                    end,
+
+                    --the to_component second return value. actually a closure around the ever changing to_input function
+                    function(...) to_input(...) end
+
             else nest.constructor_error(defgrp.name..'.'..def.name..'()') end
         end
     end
