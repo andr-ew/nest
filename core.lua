@@ -265,7 +265,7 @@ nest.define_group_def = function(defgrp)
                                 
                 local ds = make_s(default_props)
 
-                -- to_input default function, which is later overwritten on every input render
+                -- to_input default function, which is later overwritten to a version of itself w/ updated upvalues
                 local to_input = function(rargs)
                     local dst = gst(default_props)
 
@@ -286,15 +286,19 @@ nest.define_group_def = function(defgrp)
                             data, 
                             ds,
                             hargs,
-                            def.handlers.change and function(props, data, value)
-                                def.handlers.change[fmt](ds, value)
-                            end
+                            def.handlers.change 
+                                and function(props, data, value)
+                                    def.handlers.change[fmt](ds, value)
+                                end
                         )
                     end
                 end
+
+                -- the second return value from the component, closes around the ever changing to_input function
+                local to_this_component = function(...) to_input(...) end
                 
-                -- set input to close around to_input by default
-                default_props.input = default_props.input or function(...) to_input(...) end
+                -- set input to the component second return value by default
+                default_props.input = default_props.input or to_this_component
 
                 return
                     function(props)
@@ -307,11 +311,12 @@ nest.define_group_def = function(defgrp)
                             
                             local st = gst(props)
                             local s = make_s(props)
+
                             if 
                                 nest.render.mode == 'input' 
                                 and nest.render.device_name == def.device_input 
                             then
-                                -- redefine to_input every matched input render with updated upvalues
+                                -- overwrite to_input with updated upvalues
                                 to_input = function(rargs)
                                     local contained, fmt, size, hargs = def.filter(
                                         s, 
@@ -319,7 +324,7 @@ nest.define_group_def = function(defgrp)
                                     )
                                     check_init(fmt, size, st, props)
 
-                                    local sst = gst()
+                                    local sst = gst(props)
                                     props.v = sst[1]
                                     data.state = sst
 
@@ -350,7 +355,7 @@ nest.define_group_def = function(defgrp)
                                 )
                                 check_init(fmt, size, st, props)
 
-                                local sst = gst()
+                                local sst = gst(props)
                                 props.v = sst[1]
                                 data.state = sst
 
@@ -372,9 +377,7 @@ nest.define_group_def = function(defgrp)
                             end
                         end
                     end,
-
-                    --the to_component second return value. actually a closure around the ever changing to_input function
-                    function(...) to_input(...) end
+                    to_this_component
 
             else nest.constructor_error(defgrp.name..'.'..def.name..'()') end
         end
