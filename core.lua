@@ -125,24 +125,15 @@ nest.define_group_def = function(defgrp)
 
         nest.defs[defgrp.name][def.name] = def
 
-        return function(default_props)
+        return function(fprops)
             if
                 (not nest.render.started[def.device_input])
                 and (not nest.render.started[def.device_redraw])
             then
-                default_props = default_props or {}
-
                 setmetatable(def.default_props, { __index = defgrp.default_props })
-                setmetatable(default_props, { __index = def.default_props })
 
-                if default_props.state then
-                    if 
-                        type(default_props.state) == 'table' and type(default_props.state[1]) == 'function' 
-                    then
-                    elseif type(default_props.state) == 'function' then
-                    else
-                        print(defgrp.name..'.'..def.name..'()'..': when passing state to a component as an argument, state[1] must be a function')
-                    end
+                if fprops and type(fprops) ~= 'function' then
+                    print('nest: the first argument to a library component constructor must be a function returning the props table')
                 end
 
                 local data = { 
@@ -225,16 +216,12 @@ nest.define_group_def = function(defgrp)
                         and pprops.state[1]
                     then 
                         return { 
-                            type(pprops.state[1]) == 'function' 
-                                and pprops.state[1]()
-                                or pprops.state[1], 
+                            pprops.state[1], 
                             pprops.state[2] or function() end 
                         }
                     elseif pprops.state then
                         return { 
-                            type(pprops.state) == 'function' 
-                                and pprops.state()
-                                or pprops.state, 
+                            pprops.state, 
                             function(v) end 
                         }
                     else
@@ -261,29 +248,28 @@ nest.define_group_def = function(defgrp)
                         def.init(ffmt, ssize, sst, data, pprops)
                     end
                 end
-                                
-                local ds = make_s(default_props)
 
-                -- to_input default function, which is later overwritten to a version of itself w/ updated upvalues
-                local to_input = function(rargs)
-                    local dst = gst(default_props)
+                -- process raw input args from device
+                local function process_input(props, rargs)
+                    local s = make_s(props)
+                    local st = gst(props)
 
                     local contained, fmt, size, hargs = def.filter(
-                        ds, 
+                        s, 
                         rargs
                     )
-                    check_init(fmt, size, st, default_props)
+                    check_init(fmt, size, st, props)
 
-                    local dsst = gst(default_props)
-                    data.state = dsst
+                    local sst = gst(props)
+                    data.state = sst
 
                     if contained then
                         nest.handle_input(
                             def.device_redraw,
                             def.handlers.input[fmt], 
-                            default_props, 
+                            props, 
                             data, 
-                            ds,
+                            s,
                             hargs,
                             def.handlers.change 
                                 and function(props, data, value)
@@ -292,62 +278,45 @@ nest.define_group_def = function(defgrp)
                         )
                     end
                 end
-
-                -- the second return value from the component, closes around the ever changing to_input function
-                local to_this_component = function(...) to_input(...) end
                 
-                -- set input to the component second return value by default
-                default_props.input = default_props.input or to_this_component
+                local to_input = (type(fprops) == 'function') and function(rargs)
+                    local props = fprops() or {}
+                    setmetatable(props, { __index = def.default_props })
+                                
+                    process_input(props, rargs)
+                end
 
                 return
                     function(props)
-                        if 
-                            nest.render.device_name == def.device_input 
+                        if
+                            nest.render.device_name == def.device_input
                             or nest.render.device_name == def.device_redraw 
-                        then
-                            props = props or {}
-                            setmetatable(props, { __index = default_props })
-                            
-                            local st = gst(props)
-                            local s = make_s(props)
+                        then  
+                            if type(fprops) == 'function' and props then
+                                print('nest: if a function returning props has been provided to the component constructor, there is no need to provide props to the component render function')
+                            end
 
-                            if 
+                            props = (type(fprops) == 'function' and fprops()) or props or {}
+                            setmetatable(props, { __index = def.default_props })
+                            
+                            if
                                 nest.render.mode == 'input' 
                                 and nest.render.device_name == def.device_input 
                             then
-                                -- overwrite to_input with updated upvalues
-                                to_input = function(rargs)
-                                    local contained, fmt, size, hargs = def.filter(
-                                        s, 
-                                        rargs
-                                    )
-                                    check_init(fmt, size, st, props)
-
-                                    local sst = gst(props)
-                                    props.v = sst[1]
-                                    data.state = sst
-
-                                    if contained then
-                                        nest.handle_input(
-                                            def.device_redraw,
-                                            def.handlers.input[fmt], 
-                                            props, 
-                                            data, 
-                                            s,
-                                            hargs,
-                                            def.handlers.change 
-                                                and function(props, data, value)
-                                                    def.handlers.change[fmt](s, value)
-                                                end
-                                        )
-                                    end
+                                if type(fprops) == 'function' then
+                                    --set input to the to_ function by default
+                                    props.input = props.input or to_input
+                                    props.input(nest.render.args)
+                                else
+                                    process_input(props, nest.render.args)
                                 end
-                                
-                                props.input(nest.render.args)
-                            elseif 
+                            elseif
                                 nest.render.mode == 'redraw'
                                 and nest.render.device_name == def.device_redraw
                             then
+                                local st = gst(props)
+                                local s = make_s(props)
+
                                 local contained, fmt, size, hargs = def.filter(
                                     s, 
                                     nest.render.args
@@ -372,11 +341,11 @@ nest.define_group_def = function(defgrp)
                                     and not nest.render.started[def.device_redraw]
                                 )
                             then 
-                                nest.render_error(defgrp.name..'.'..def.name..'()') 
+                                nest.render_error(defgrp.name..'.'..def.name..'()')
                             end
                         end
                     end,
-                    to_this_component
+                    to_input
 
             else nest.constructor_error(defgrp.name..'.'..def.name..'()') end
         end
