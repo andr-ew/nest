@@ -295,33 +295,35 @@ nest.define_group_def = function(defgrp)
 
                 -- process raw input args from device
                 local function process_input(props, rargs)
-                    local st = gst(props)
-                    local s = make_s(props, st)
+                    if props.input_enabled then
+                        local st = gst(props)
+                        local s = make_s(props, st)
 
-                    local contained, fmt, size, hargs = def.filter(
-                        s, 
-                        rargs
-                    )
-
-                    check_init(fmt, size, st, props)
-
-                    local sst = gst(props)
-                    props.v = sst[1]
-                    data.state = sst
-
-                    if contained then
-                        nest.handle_input(
-                            def.device_redraw,
-                            def.handlers.input[fmt], 
-                            props, 
-                            data, 
-                            s,
-                            hargs,
-                            def.handlers.change 
-                                and function(props, data, value)
-                                    def.handlers.change[fmt](s, value)
-                                end
+                        local contained, fmt, size, hargs = def.filter(
+                            s, 
+                            rargs
                         )
+
+                        check_init(fmt, size, st, props)
+
+                        local sst = gst(props)
+                        props.v = sst[1]
+                        data.state = sst
+
+                        if contained then
+                            nest.handle_input(
+                                def.device_redraw,
+                                def.handlers.input[fmt], 
+                                props, 
+                                data, 
+                                s,
+                                hargs,
+                                def.handlers.change 
+                                    and function(props, data, value)
+                                        def.handlers.change[fmt](s, value)
+                                    end
+                            )
+                        end
                     end
                 end
                
@@ -363,24 +365,26 @@ nest.define_group_def = function(defgrp)
                                 nest.render.mode == 'redraw'
                                 and nest.render.device_name == def.device_redraw
                             then
-                                local st = gst(props)
-                                local s = make_s(props, st)
+                                if props.redraw_enabled then
+                                    local st = gst(props)
+                                    local s = make_s(props, st)
 
-                                local contained, fmt, size, hargs = def.filter(
-                                    s, 
-                                    nest.render.args
-                                )
-                                check_init(fmt, size, st, props)
+                                    local contained, fmt, size, hargs = def.filter(
+                                        s, 
+                                        nest.render.args
+                                    )
+                                    check_init(fmt, size, st, props)
 
-                                local sst = gst(props)
-                                props.v = sst[1]
-                                data.state = sst
+                                    local sst = gst(props)
+                                    props.v = sst[1]
+                                    data.state = sst
 
-                                def.handlers.redraw[fmt](
-                                    s, 
-                                    props.v,
-                                    nest.render.device
-                                )
+                                    def.handlers.redraw[fmt](
+                                        s, 
+                                        props.v,
+                                        nest.render.device
+                                    )
+                                end
                             elseif  
                                 (
                                     def.device_input 
