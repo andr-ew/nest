@@ -138,6 +138,11 @@ local devk = {
     key = 'key',
 }
 
+local default_props_all = {
+    input_enabled = true,
+    redraw_enabled = true,
+}
+
 nest.define_group_def = function(defgrp)
     defgrp.name = defgrp.name or ''
     defgrp.device_input = defgrp.device_input or nil
@@ -148,6 +153,8 @@ nest.define_group_def = function(defgrp)
     defgrp.init = defgrp.init or function(format, data) end
 
     nest.defs[defgrp.name] = {}
+    
+    setmetatable(defgrp.default_props, { __index = default_props_all })
 
     return function(def)
         def.name = def.name or ''
@@ -159,6 +166,7 @@ nest.define_group_def = function(defgrp)
         def.device_redraw = def.device_redraw or defgrp.device_redraw or nil
 
         nest.defs[defgrp.name][def.name] = def
+
 
         return function(fprops)
             if
