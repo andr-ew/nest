@@ -17,6 +17,7 @@ nest = {
     defs = {},
 }
 
+--TODO: support arc_key
 for _, dev in ipairs{ 'key', 'enc', 'screen', 'grid', 'arc' } do
     nest[dev] = {}
     nest[dev].is_constructing = function()
