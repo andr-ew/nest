@@ -22,6 +22,11 @@ for _, dev in ipairs{ 'key', 'enc', 'screen', 'grid', 'arc' } do
     nest[dev].is_constructing = function()
         return not nest.render.started[dev]
     end
+    nest[dev].device = function()
+        if nest[dev].has_input() or nest[dev].is_drawing() then
+            return nest.render.device
+        end
+    end
 end
 for _, dev in ipairs{ 'key', 'enc', 'grid', 'arc' } do
     nest[dev].has_input = function()
