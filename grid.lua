@@ -524,7 +524,7 @@ _grid.pattern = _grid.toggle:new {
             t = time
             d = delta
             v = value
-            set = function(val) return value end
+            set = function(val) return val end
         end
 
         local function stop_all()
