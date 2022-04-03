@@ -91,8 +91,6 @@ function nest.handle_input(device_redraw, handler, props, data, s, hargs, on_upd
     local aargs = table.pack(handler(s, table.unpack(hargs)))
     
     local function action()
-        if device_redraw then nest.dirty[device_redraw] = true end
-        
         if props.state and props.state[2] then
             if props.action then
                 print('nest: since the state[2] prop has been provided, the provided action prop will not be run. please use one prop or the other, not both')
@@ -113,6 +111,8 @@ function nest.handle_input(device_redraw, handler, props, data, s, hargs, on_upd
         
             if(on_update) then on_update(props, data, v, hargs) end
         end
+        
+        if device_redraw then nest.dirty[device_redraw] = true end
     end
 
     if aargs and aargs[1] then
@@ -197,13 +197,13 @@ nest.define_group_def = function(defgrp)
                 setmetatable(def.handlers, { __index = handlers_blank })
 
                 -- create a proxy for props & data for backwards compatability with routines/
-                local function make_s(pprops)
+                local function make_s(pprops, st)
                     --TODO: lvl nickname
                     return setmetatable({
                         p_ = setmetatable({}, {
                             __index = function(t, k)
                                 if type(pprops[k]) == 'function' then
-                                    return pprops[k](st[1], pprops, data)
+                                    return pprops[k](st[1])
                                 else
                                     return pprops[k]
                                 end
@@ -282,8 +282,8 @@ nest.define_group_def = function(defgrp)
 
                 -- process raw input args from device
                 local function process_input(props, rargs)
-                    local s = make_s(props)
                     local st = gst(props)
+                    local s = make_s(props, st)
 
                     local contained, fmt, size, hargs = def.filter(
                         s, 
@@ -351,7 +351,7 @@ nest.define_group_def = function(defgrp)
                                 and nest.render.device_name == def.device_redraw
                             then
                                 local st = gst(props)
-                                local s = make_s(props)
+                                local s = make_s(props, st)
 
                                 local contained, fmt, size, hargs = def.filter(
                                     s, 
