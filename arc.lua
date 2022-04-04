@@ -114,7 +114,8 @@ Arc.option = Arc.define{
         include = nil,
         glyph = nil,
         min = 1, 
-        max = function(v, props) return props.options end,
+        --max = function(v, props) return props.options end,
+        max = math.huge,
         margin = 0
     },
     handlers = rout.option,
