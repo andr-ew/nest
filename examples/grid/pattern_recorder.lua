@@ -2,23 +2,28 @@ local function PatternRecorder()
     _tog = Grid.toggle()
 
     return function(props)
+        local off = 0
+        local dim = (props.varibright == false) and 0 or 4
+        local med = (props.varibright == false) and 15 or 4
+        local hi = 15
+
         props.lvl = {
-            0, ------------------ 0 empty
+            off, ------------------ 0 empty
             function(s, d) ------ 1 empty, recording, no playback
                 while true do
-                    d(4)
+                    d(med)
                     clock.sleep(0.25)
-                    d(0)
+                    d(off)
                     clock.sleep(0.25)
                 end
             end,
-            4, ------------------ 2 filled, paused
-            15, ----------------- 3 filled, playback
+            dim, ------------------ 2 filled, paused
+            hi, ----------------- 3 filled, playback
             function(s, d) ------ 4 filled, recording, playback
                 while true do
-                    d(15)
+                    d(hi)
                     clock.sleep(0.2)
-                    d(0)
+                    d(off)
                     clock.sleep(0.2)
                 end
             end,
