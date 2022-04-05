@@ -275,17 +275,17 @@ nest.define_group_def = function(defgrp)
 
                 --(re)initialize data dynamically
                 local function check_init(ffmt, ssize, sst, pprops)
-                    if
-                        ffmt ~= data.format
-                        or (
-                            type(ssize)=='table' 
-                            and (
-                                ssize.x ~= data.size.x or ssize.y ~= data.size.y
-                            ) or (
-                                ssize ~= data.size
-                            )
-                        )
-                    then
+                    local size_is_diffo
+                    if type(ssize) == 'table' then 
+                        if data.size then
+                            size_is_diffo = 
+                                (ssize.x ~= data.size.x) or (ssize.y ~= data.size.y)
+                        else size_is_diffo = true end
+                    else
+                        size_is_diffo = ssize ~= data.size
+                    end
+
+                    if size_is_diffo or (ffmt ~= data.format) then
                         data.format = ffmt
                         data.size = ssize
 

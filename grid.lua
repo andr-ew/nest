@@ -119,7 +119,10 @@ end
 
 local function formatted_binary(format, state)
     if format=='plane' then
-        return type(state[1]) == 'table' and type(state[1][next(state[1])]) == 'table'
+        return 
+            type(state[1]) == 'table' 
+            and state[1][#state[1]]
+            and type(state[1][#state[1]]) == 'table'
     elseif format=='line_x' or format=='line_y' then
          return type(state[1]) == 'table'
     elseif format=='point' then 
@@ -128,8 +131,9 @@ local function formatted_binary(format, state)
 end
 
 local init_binary = function(format, size, state, o)
-
-    if not formatted_binary(format, state) then state[2](fill(format, size, 0)) end
+    if not formatted_binary(format, state) then 
+        state[2](fill(format, size, 0)) 
+    end
     
     o.list = {}
     o.held = fill(format, size, 0)
