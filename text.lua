@@ -46,7 +46,7 @@ Text.label = Text.define{
     default_props = {},
     init = function(format, size, state, data, props) 
         data.txt = function(s) 
-            return s.p_.v 
+            return s.p_.label
         end
     end,
     filter = function()
