@@ -44,7 +44,9 @@ nest.connect_screen = function(render, fps)
         screen.update()
     end
 
-    begin_render(redraw)
+    begin_render(function() 
+        redraw()
+    end)
 end
 
 -- nest.handle_input.key = function(...)
