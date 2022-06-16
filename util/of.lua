@@ -1,8 +1,9 @@
 local of = {
-    param = function(id)
+    param = function(id, offset)
+        offset = offset or 0
         return {
-            params:get(id),
-            function(v) params:set(id, v) end
+            params:get(id) - offset,
+            function(v) params:set(id, v + offset) end
         }
     end,
     controlspec = function(id)
