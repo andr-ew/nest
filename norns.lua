@@ -243,7 +243,7 @@ Key.trigger = Key.define{
         init_binary(format, size, state, data)
 
         data.triglist = {}
-        data.tdela = fill(format, size, 0)
+        data.tdelta = fill(format, size, 0)
     end,
     handlers = rout.key.trigger
 }
