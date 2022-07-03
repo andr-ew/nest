@@ -37,7 +37,7 @@ local function PatternRecorder()
             elseif x then p = props.pattern[x]
             else p = props.pattern end
             
-            print(props.pattern, props.pattern[1], x, y)
+            --print(props.pattern, props.pattern[1], x, y)
 
             if p.count > 0 then
                 --if p.overdub then return { 2, 4 }
@@ -47,6 +47,8 @@ local function PatternRecorder()
                 return { 0, 1 }
             end
         end
+
+        local action = props.action
 
         props.action = function(value, time, delta, add, rem, list)
             -- assign variables, setter function based on affordance dimentions
@@ -177,6 +179,8 @@ local function PatternRecorder()
                     end
                 end
             end
+
+            action(value, time, delta, add, rem, list)
         end
 
         _tog(props)
