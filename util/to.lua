@@ -6,7 +6,7 @@ to.pattern = function(mpat, id, Comp, fprops)
     local wrapped
     local _comp, to_comp
 
-    _comp, to_comp = Comp(function() 
+    _comp, to_comp, reset_comp = Comp(function() 
         local props = fprops()
 
         if type(props.state) == 'table' and props.state[2] then
@@ -29,7 +29,7 @@ to.pattern = function(mpat, id, Comp, fprops)
         return props
     end)
 
-    return _comp
+    return _comp, reset_comp
 end
 
 return to

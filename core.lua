@@ -335,6 +335,23 @@ nest.define_group_def = function(defgrp)
                                 
                     process_input(props, { ... })
                 end
+                
+                -- reset: third return value to reset internal data
+                local reset = (type(fprops) == 'function') and function(...)
+                    local props = fprops() or {}
+                    setmetatable(props, { __index = def.default_props })
+                                
+                    data.value = nil
+                    local sst = gst(props)
+                    local pprops = props
+
+                    print('resetting')
+                    
+                    def.init(data.format, data.size, sst, data, pprops)
+        
+                    local device_redraw = def.device_redraw
+                    if device_redraw then nest.dirty[device_redraw] = true end
+                end
 
                 return
                     function(props)
@@ -399,7 +416,8 @@ nest.define_group_def = function(defgrp)
                             end
                         end
                     end,
-                    to_input
+                    to_input,
+                    reset
 
             else nest.constructor_error(defgrp.name..'.'..def.name..'()') end
         end

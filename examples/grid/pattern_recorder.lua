@@ -1,5 +1,5 @@
 local function PatternRecorder()
-    _tog = Grid.toggle()
+    local _tog = Grid.toggle()
 
     return function(props)
         local off = 0
