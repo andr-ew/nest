@@ -345,8 +345,6 @@ nest.define_group_def = function(defgrp)
                     local sst = gst(props)
                     local pprops = props
 
-                    print('resetting')
-                    
                     def.init(data.format, data.size, sst, data, pprops)
         
                     local device_redraw = def.device_redraw
