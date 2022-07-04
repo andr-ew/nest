@@ -180,7 +180,7 @@ local function PatternRecorder()
                 end
             end
 
-            action(value, time, delta, add, rem, list)
+            if action then action(value, time, delta, add, rem, list) end
         end
 
         _tog(props)
