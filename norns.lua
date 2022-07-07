@@ -183,7 +183,7 @@ Key.option = Key.define{
         edge = 'rising',
     },
     init = function(format, size, state, data, props)
-        if not formatted(format, state) then state[2](1) end
+        if not type(state[1]) == 'number' then state[2](1) end
 
         data.tdown = 0
     end,
