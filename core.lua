@@ -17,6 +17,13 @@ nest = {
     defs = {},
 }
 
+function nest.has_input()
+    return nest.render.mode == 'input'
+end
+function nest.is_drawing()
+    return nest.render.mode == 'redraw'
+end
+
 --TODO: support arc_key
 for _, dev in ipairs{ 'key', 'enc', 'screen', 'grid', 'arc' } do
     nest[dev] = {}
